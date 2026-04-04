@@ -1,124 +1,101 @@
-# AI Testbed Commerce
+# Testbed
 
-Single-page Vite app for exercising AI-generated end-to-end tests against a controlled set of routes, roles, selectors, and intentional failure modes.
+Standalone QA testbed built with React, TypeScript, Tailwind, a local JSON-backed HTTP server, and an Electron wrapper.
 
-## Stack
+## Modes
 
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Vite app scaffold
-- `rolldown-vite` for dev/build/preview commands
+- `npm run dev`: starts the standalone localhost server in development mode and serves the web UI plus APIs
+- `npm run preview`: serves the built web app and APIs from the standalone server
+- `npm run dev:desktop`: launches the Electron desktop app shell
+- `npm run dist:desktop`: builds the web assets and packages the Electron app
 
-## Run
+## Architecture
 
-```bash
-npm install
-npm run dev
-```
+- `server/`: standalone localhost server for the web UI and runtime APIs
+- `electron/`: desktop shell that chooses a data folder, starts the server, and opens a BrowserWindow
+- `src/`: React frontend used by both browser sessions and the Electron window
 
-## Demo users
+The server binds to loopback and is intended to be reachable from:
 
-All credentials live in [src/config/users.json](/Users/christopherneale/projects/testbed/src/config/users.json).
+- an external browser
+- an E2E test runner
+- the Electron desktop app window
 
-- `customer@example.com` / `password123`
-- `vip@example.com` / `password123`
-- `admin@example.com` / `password123`
+## Runtime Data
 
-Role access:
+Source JSON under `src/config` and `src/data` is treated as immutable defaults.
 
-- `customer` can access shop, checkout, and orders
-- `vip` can access shop, checkout, orders, and the VIP area
-- `admin` can access only the admin area
+Runtime JSON is created in a writable data directory:
 
-## Routes
+- `users.json`
+- `break-modes.json`
+- `products.json`
+- `orders.json`
+- `app-state.json`
 
-The home page lists these when the app starts.
+Standalone server mode uses `.testbed-runtime/standalone` by default.
 
-- `/` home route with route directory, credentials, and break-mode summary
-- `/login` username/password login
-- `/shop` customer or VIP storefront
-- `/checkout` customer or VIP multi-step checkout
-- `/orders` customer or VIP order history
-- `/vip` VIP-only catalog area
-- `/admin` admin-only tools
-- `/reset` clears local demo state and redirects home
+The Electron app prompts for a user-chosen data folder on first run and stores that choice in the Electron user-data area.
 
-## Reset behavior
+## Public APIs
 
-Visit `/reset` to clear:
+Runtime/bootstrap:
 
-- signed-in session
-- basket contents
-- order history
-- admin product overrides
+- `GET /api/runtime/bootstrap`
+- `POST /api/auth/login`
 
-This gives you a clean state for a new test run without restarting the app.
+Test controls:
 
-## Config files
+- `GET /api/test-controls/state`
+- `POST /api/test-controls/break-modes`
+- `POST /api/test-controls/reset`
 
-- [src/config/users.json](/Users/christopherneale/projects/testbed/src/config/users.json): login credentials and roles
-- [src/config/app-config.json](/Users/christopherneale/projects/testbed/src/config/app-config.json): route metadata and break toggles
-- [src/data/products.json](/Users/christopherneale/projects/testbed/src/data/products.json): seeded catalog items
+Shop/orders:
 
-## Break toggles
+- `GET /api/shop/products`
+- `GET /api/orders`
+- `POST /api/orders`
 
-Defaults live in [src/config/app-config.json](/Users/christopherneale/projects/testbed/src/config/app-config.json), but the running app now reads mutable break-mode state from the test control API.
+Admin/runtime management:
 
-Available toggles:
+- `GET /api/admin/overview`
+- `GET /api/admin/users`
+- `POST /api/admin/users`
+- `PUT /api/admin/users/:username`
+- `DELETE /api/admin/users/:username`
+- `POST /api/admin/break-modes`
+- `PATCH /api/admin/products/:id`
+- `POST /api/admin/reset-runtime`
 
-- `apiFailures.products`: product/catalog fetch fails
-- `apiFailures.orders`: order history and checkout submission fail
-- `apiFailures.admin`: admin dashboard data fetch fails
-- `highLatency`: simulated latency increases to make async handling visible
-- `selectorsChange`: `data-testid` values and CSS hook classes drift
-- `contentChange`: key labels and headings change
-- `disableAddToCart`: add-to-basket buttons are disabled
-- `brokenCheckoutTotal`: checkout total is intentionally incorrect
-- `bypassVipGuard`: VIP route becomes accessible without the VIP role
-- `bypassAdminGuard`: admin route becomes accessible without the admin role
-- `emptyProductList`: catalog returns zero products
+## Browser UI
 
-## Test control API
+The served browser app keeps the existing QA surface:
 
-The app exposes a same-origin API so tests can set break modes before the browser session starts.
+- login
+- shop
+- checkout
+- orders
+- VIP area
+- route directory
+- selector/test-id coverage
+- break-mode-driven failures
 
-- `GET /api/test-controls/state`: read current break-mode state
-- `POST /api/test-controls/break-modes`: merge a partial break-mode update into current state
-- `POST /api/test-controls/reset`: reset break modes back to defaults from config
+The browser-facing `/admin` route now points users to the desktop-only admin shell.
 
-Example:
+## Desktop UI
 
-```bash
-curl -X POST http://127.0.0.1:5175/api/test-controls/break-modes \
-  -H 'Content-Type: application/json' \
-  -d '{"breakModes":{"highLatency":true,"apiFailures":{"products":true}}}'
-```
+The Electron window opens `/desktop` and exposes a desktop-only admin shell with:
 
-Reset:
+- dashboard summary
+- user CRUD
+- break-mode toggles
+- product visibility/stock controls
+- order inspection
+- chosen data-folder controls
+- server URL / port visibility
 
-```bash
-curl -X POST http://127.0.0.1:5175/api/test-controls/reset
-```
+## Notes
 
-The runtime state is persisted in `.testbed-runtime/break-modes.json`, so the selected break modes survive reloads until reset.
-
-## Admin tools
-
-The admin route includes:
-
-- product stock adjustments
-- product visibility toggles
-- user list
-- order list
-- current break-mode config viewer
-
-## E2E locator surface
-
-The app intentionally exposes multiple selector styles:
-
-- semantic buttons, headings, forms, and navigation for ARIA/role-based tests
-- `data-testid` attributes for stable test-id-based tests
-- CSS hook classes such as `qa-nav-link`, `qa-product-card`, `qa-basket-item`
-
-When `selectorsChange` is enabled, both the `data-testid` values and CSS hooks shift so test generators can validate selector resilience.
+- Browser-local session and cart state are still cleared by `/reset`
+- Runtime JSON state is reset through desktop admin actions or the test-control/admin APIs
+- Packaging config is defined in `package.json` under `build`

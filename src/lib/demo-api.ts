@@ -1,97 +1,26 @@
-import { baseProducts, breakModes, demoConfig, demoUsers } from './demo-config'
-import {
-  getStoredOrders,
-  getStoredProductOverrides,
-  setStoredOrders,
-  setStoredProductOverrides,
-} from './storage'
 import type {
   AdminSnapshot,
+  BreakModes,
   CartItem,
+  DemoUser,
   Order,
   PaymentDetails,
   Product,
-  ProductOverride,
   ShippingDetails,
 } from '../types'
 
+async function parseResponse<T>(response: Response): Promise<T> {
+  const payload = (await response.json()) as T & { error?: string }
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Request failed.')
+  }
+
+  return payload
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
-}
-
-async function simulateLatency() {
-  await sleep(breakModes.highLatency ? 1800 : 180)
-}
-
-function shouldFail(scope: 'products' | 'orders' | 'admin') {
-  return breakModes.apiFailures[scope]
-}
-
-function mergeProductOverrides(product: Product, overrides: Record<string, ProductOverride>) {
-  const override = overrides[product.id]
-
-  if (!override) {
-    return product
-  }
-
-  return {
-    ...product,
-    stock: override.stock ?? product.stock,
-    hidden: override.hidden ?? false,
-  }
-}
-
-export async function fetchProducts() {
-  await simulateLatency()
-
-  if (shouldFail('products')) {
-    throw new Error('Product service did not return data.')
-  }
-
-  if (breakModes.emptyProductList) {
-    return []
-  }
-
-  const overrides = getStoredProductOverrides()
-
-  return baseProducts
-    .map((product) => mergeProductOverrides(product, overrides))
-    .filter((product) => !overrides[product.id]?.hidden)
-}
-
-export async function fetchOrders() {
-  await simulateLatency()
-
-  if (shouldFail('orders')) {
-    throw new Error('Orders service did not return data.')
-  }
-
-  return getStoredOrders()
-}
-
-export async function fetchAdminSnapshot(): Promise<AdminSnapshot> {
-  await simulateLatency()
-
-  if (shouldFail('admin')) {
-    throw new Error('Admin service did not return data.')
-  }
-
-  const overrides = getStoredProductOverrides()
-
-  return {
-    users: demoUsers,
-    products: baseProducts.map((product) => mergeProductOverrides(product, overrides)),
-    orders: getStoredOrders(),
-    breakModes: demoConfig.breakModes,
-  }
-}
-
-export async function updateProductOverride(productId: string, override: ProductOverride) {
-  await simulateLatency()
-
-  const current = getStoredProductOverrides()
-  current[productId] = { ...current[productId], ...override }
-  setStoredProductOverrides(current)
 }
 
 export function calculateSubtotal(items: CartItem[], products: Product[]) {
@@ -99,6 +28,35 @@ export function calculateSubtotal(items: CartItem[], products: Product[]) {
     const product = products.find((candidate) => candidate.id === item.productId)
     return total + (product?.price ?? 0) * item.quantity
   }, 0)
+}
+
+export async function fetchProducts() {
+  const response = await fetch('/api/shop/products')
+  const payload = await parseResponse<{ products: Product[] }>(response)
+  return payload.products
+}
+
+export async function fetchOrders() {
+  const response = await fetch('/api/orders')
+  const payload = await parseResponse<{ orders: Order[] }>(response)
+  return payload.orders
+}
+
+export async function fetchAdminSnapshot(): Promise<AdminSnapshot> {
+  const response = await fetch('/api/admin/overview')
+  const payload = await parseResponse<AdminSnapshot>(response)
+  return payload
+}
+
+export async function updateProduct(productId: string, product: Partial<Product>) {
+  const response = await fetch(`/api/admin/products/${productId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ product }),
+  })
+  return parseResponse<{ product: Product | null }>(response)
 }
 
 export async function submitOrder(input: {
@@ -109,32 +67,78 @@ export async function submitOrder(input: {
   shipping: ShippingDetails
   payment: PaymentDetails
 }) {
-  await simulateLatency()
-
-  if (shouldFail('orders')) {
-    throw new Error('Checkout request failed before order creation.')
-  }
-
-  const subtotal = calculateSubtotal(input.items, input.products)
-  const total = breakModes.brokenCheckoutTotal ? Math.max(subtotal - 7, 0) : subtotal + 12
-
-  const newOrder: Order = {
-    id: `ORD-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    userRole: input.userRole,
-    username: input.username,
-    items: input.items,
-    shipping: input.shipping,
-    payment: {
-      cardName: input.payment.cardName,
-      cardLast4: input.payment.cardNumber.slice(-4),
+  const response = await fetch('/api/orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-    subtotal,
-    total,
-  }
+    body: JSON.stringify(input),
+  })
+  const payload = await parseResponse<{ order: Order }>(response)
+  return payload.order
+}
 
-  const existingOrders = getStoredOrders()
-  setStoredOrders([newOrder, ...existingOrders])
+export async function saveBreakModes(breakModes: BreakModes) {
+  const response = await fetch('/api/admin/break-modes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ breakModes }),
+  })
 
-  return newOrder
+  return parseResponse<{ breakModes: BreakModes }>(response)
+}
+
+export async function resetBreakModes() {
+  const response = await fetch('/api/test-controls/reset', {
+    method: 'POST',
+  })
+
+  return parseResponse<{ breakModes: BreakModes }>(response)
+}
+
+export async function resetRuntimeData() {
+  const response = await fetch('/api/admin/reset-runtime', {
+    method: 'POST',
+  })
+
+  return parseResponse<{ ok: boolean }>(response)
+}
+
+export async function createUser(user: DemoUser) {
+  const response = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user }),
+  })
+
+  return parseResponse<{ users: DemoUser[] }>(response)
+}
+
+export async function updateUser(username: string, user: Partial<DemoUser>) {
+  const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user }),
+  })
+
+  return parseResponse<{ users: DemoUser[] }>(response)
+}
+
+export async function deleteUser(username: string) {
+  const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, {
+    method: 'DELETE',
+  })
+
+  return parseResponse<{ users: DemoUser[] }>(response)
+}
+
+export async function refreshDesktopContext() {
+  await sleep(150)
+  return window.desktopBridge?.getContext() ?? null
 }

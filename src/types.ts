@@ -101,3 +101,17 @@ export interface SessionUser {
   role: Role
   displayName: string
 }
+
+export interface RuntimeBootstrap {
+  appName: string
+  routes: DemoRoute[]
+  breakModes: BreakModes
+  users: DemoUser[]
+}
+
+export interface DesktopContext {
+  serverUrl: string | null
+  port: number | null
+  usedFallbackPort: boolean
+  dataDirectory: string | null
+}

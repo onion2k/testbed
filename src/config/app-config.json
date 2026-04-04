@@ -38,10 +38,10 @@
       "description": "VIP-only catalog area for premium users."
     },
     {
-      "path": "/admin",
-      "label": "Admin",
-      "access": "Admin",
-      "description": "Admin dashboard with products, users, orders, and config visibility."
+      "path": "/desktop",
+      "label": "Desktop",
+      "access": "Desktop only",
+      "description": "Desktop-only admin shell for break modes, users, server status, and data-folder controls."
     },
     {
       "path": "/reset",

@@ -1,13 +1,11 @@
 import appConfigJson from '../config/app-config.json'
 import usersJson from '../config/users.json'
-import productsJson from '../data/products.json'
-import type { BreakModes, DemoConfig, DemoUser, Product } from '../types'
+import type { BreakModes, DemoConfig, DemoUser, RuntimeBootstrap } from '../types'
 
 const defaultDemoConfig = appConfigJson as DemoConfig
 
 export let demoConfig = structuredClone(defaultDemoConfig)
-export const demoUsers = usersJson.users as DemoUser[]
-export const baseProducts = productsJson.products as Product[]
+export let demoUsers = usersJson.users as DemoUser[]
 
 export let contentLabels = buildContentLabels(demoConfig.breakModes)
 
@@ -32,19 +30,26 @@ export function setRuntimeBreakModes(nextBreakModes: BreakModes) {
   contentLabels = buildContentLabels(breakModes)
 }
 
+export function setRuntimeBootstrap(bootstrap: RuntimeBootstrap) {
+  demoConfig = {
+    appName: bootstrap.appName,
+    routes: bootstrap.routes,
+    breakModes: structuredClone(bootstrap.breakModes),
+  }
+  demoUsers = bootstrap.users
+  breakModes = demoConfig.breakModes
+  contentLabels = buildContentLabels(breakModes)
+}
+
 export async function loadRuntimeConfig() {
   try {
-    const response = await fetch('/api/test-controls/state')
+    const response = await fetch('/api/runtime/bootstrap')
 
     if (!response.ok) {
       throw new Error(`Failed to load runtime config: ${response.status}`)
     }
 
-    const payload = (await response.json()) as { breakModes?: BreakModes }
-
-    if (payload.breakModes) {
-      setRuntimeBreakModes(payload.breakModes)
-    }
+    setRuntimeBootstrap((await response.json()) as RuntimeBootstrap)
   } catch {
     setRuntimeBreakModes(defaultDemoConfig.breakModes)
   }

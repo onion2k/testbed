@@ -1,6 +1,5 @@
 import { useState, type PropsWithChildren } from 'react'
 import { AuthContext } from './auth-context'
-import { demoUsers } from './lib/demo-config'
 import { getStoredSession, setStoredSession } from './lib/storage'
 import type { SessionUser } from './types'
 
@@ -8,22 +7,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<SessionUser | null>(() => getStoredSession())
 
   async function login(username: string, password: string) {
-    const match = demoUsers.find(
-      (candidate) => candidate.username === username && candidate.password === password,
-    )
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    })
 
-    if (!match) {
-      throw new Error('Invalid username or password.')
+    const payload = (await response.json()) as { error?: string; user?: SessionUser }
+
+    if (!response.ok || !payload.user) {
+      throw new Error(payload.error ?? 'Invalid username or password.')
     }
 
-    const nextUser: SessionUser = {
-      username: match.username,
-      role: match.role,
-      displayName: match.displayName,
-    }
-
-    setStoredSession(nextUser)
-    setUser(nextUser)
+    setStoredSession(payload.user)
+    setUser(payload.user)
   }
 
   function logout() {
