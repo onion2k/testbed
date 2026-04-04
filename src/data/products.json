@@ -1,0 +1,41 @@
+{
+  "products": [
+    {
+      "id": "wireless-headset",
+      "name": "Wireless Headset",
+      "category": "Audio",
+      "description": "Noise-cancelling headset for focused work sessions.",
+      "price": 129,
+      "stock": 12,
+      "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "smart-lamp",
+      "name": "Smart Lamp",
+      "category": "Home Office",
+      "description": "Desk lamp with warm and cool presets for long testing runs.",
+      "price": 84,
+      "stock": 8,
+      "image": "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "mechanical-keyboard",
+      "name": "Mechanical Keyboard",
+      "category": "Peripherals",
+      "description": "Compact keyboard with tactile switches and hot-swap keys.",
+      "price": 149,
+      "stock": 5,
+      "image": "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?auto=format&fit=crop&w=900&q=80"
+    },
+    {
+      "id": "vip-travel-pack",
+      "name": "VIP Travel Pack",
+      "category": "VIP",
+      "description": "Limited bundle unlocked in the VIP area.",
+      "price": 199,
+      "vipOnly": true,
+      "stock": 4,
+      "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=900&q=80"
+    }
+  ]
+}

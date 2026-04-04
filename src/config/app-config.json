@@ -1,0 +1,68 @@
+{
+  "appName": "Testbed",
+  "routes": [
+    {
+      "path": "/",
+      "label": "Home",
+      "access": "Public",
+      "description": "Route directory, credentials, and current break-mode status."
+    },
+    {
+      "path": "/login",
+      "label": "Login",
+      "access": "Public",
+      "description": "Username/password sign-in using local JSON credentials."
+    },
+    {
+      "path": "/shop",
+      "label": "Shop",
+      "access": "Customer or VIP",
+      "description": "Browse products, add items to basket, and start checkout."
+    },
+    {
+      "path": "/checkout",
+      "label": "Checkout",
+      "access": "Customer or VIP",
+      "description": "Multi-step checkout with persisted basket and order history."
+    },
+    {
+      "path": "/orders",
+      "label": "Orders",
+      "access": "Customer or VIP",
+      "description": "Order history persisted in local storage."
+    },
+    {
+      "path": "/vip",
+      "label": "VIP",
+      "access": "VIP",
+      "description": "VIP-only catalog area for premium users."
+    },
+    {
+      "path": "/admin",
+      "label": "Admin",
+      "access": "Admin",
+      "description": "Admin dashboard with products, users, orders, and config visibility."
+    },
+    {
+      "path": "/reset",
+      "label": "Reset",
+      "access": "Public",
+      "description": "Clears local demo state for a fresh test run."
+    }
+  ],
+  "breakModes": {
+    "apiFailures": {
+      "products": false,
+      "orders": false,
+      "admin": false
+    },
+    "highLatency": false,
+    "selectorsChange": false,
+    "contentChange": false,
+    "disableAddToCart": false,
+    "brokenCheckoutTotal": false,
+    "bypassVipGuard": false,
+    "bypassAdminGuard": false,
+    "emptyProductList": false
+  }
+}
