@@ -157,7 +157,6 @@ function AppShell() {
     ['/vip', 'VIP'],
     ['/orders', 'Orders'],
     ['/login', user ? 'Switch user' : 'Login'],
-    ['/reset', 'Reset'],
   ]
 
   if (isDesktop && location.pathname === '/desktop') {
