@@ -12,7 +12,18 @@ function readJsonFile(filePath) {
 const defaultAppConfig = readJsonFile(path.join(projectRoot, 'src/config/app-config.json'))
 const defaultUsers = readJsonFile(path.join(projectRoot, 'src/config/users.json')).users
 const defaultProducts = readJsonFile(path.join(projectRoot, 'src/data/products.json')).products
+const defaultPresets = readJsonFile(path.join(projectRoot, 'src/config/scenario-presets.json')).presets
 const defaultOrders = []
+const baselinePreset = defaultPresets.find((preset) => preset.id === 'baseline') ?? defaultPresets[0]
+const defaultTestControls = {
+  activePresetId: baselinePreset?.id ?? null,
+  breakModes: deepClone(defaultAppConfig.breakModes),
+  faults: deepClone(baselinePreset?.faults ?? {}),
+  tracing: {
+    enabled: true,
+    maxEntries: 100,
+  },
+}
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value))
@@ -35,6 +46,7 @@ function resolveRuntimePaths(dataDirectory) {
     products: path.join(dataDirectory, 'products.json'),
     orders: path.join(dataDirectory, 'orders.json'),
     appState: path.join(dataDirectory, 'app-state.json'),
+    testControls: path.join(dataDirectory, 'test-controls.json'),
   }
 }
 
@@ -67,6 +79,7 @@ export function ensureRuntimeData(dataDirectory) {
       createdAt: new Date().toISOString(),
       selectedDataDirectory: dataDirectory,
     },
+    [paths.testControls]: defaultTestControls,
   }
 
   for (const [filePath, seedValue] of Object.entries(seeds)) {
@@ -95,12 +108,106 @@ export function createRuntimeStore(dataDirectory) {
   }
 
   function readBreakModes() {
-    return readJsonFile(paths.breakModes)
+    const testControls = readTestControls()
+    return testControls.breakModes
   }
 
   function writeBreakModes(breakModes) {
     atomicWriteJson(paths.breakModes, breakModes)
+    const current = readTestControls()
+    writeTestControls({
+      ...current,
+      breakModes,
+    })
     return breakModes
+  }
+
+  function listScenarioPresets() {
+    return deepClone(defaultPresets)
+  }
+
+  function readTestControls() {
+    const current = readJsonFile(paths.testControls)
+    const next = {
+      ...deepClone(defaultTestControls),
+      ...current,
+      breakModes: {
+        ...deepClone(defaultAppConfig.breakModes),
+        ...(current?.breakModes ?? {}),
+        apiFailures: {
+          ...deepClone(defaultAppConfig.breakModes.apiFailures),
+          ...(current?.breakModes?.apiFailures ?? {}),
+        },
+      },
+      faults: {
+        ...deepClone(defaultTestControls.faults),
+        ...(current?.faults ?? {}),
+      },
+      tracing: {
+        ...deepClone(defaultTestControls.tracing),
+        ...(current?.tracing ?? {}),
+      },
+    }
+
+    if (JSON.stringify(next) !== JSON.stringify(current)) {
+      atomicWriteJson(paths.testControls, next)
+    }
+
+    return next
+  }
+
+  function writeTestControls(testControls) {
+    atomicWriteJson(paths.testControls, testControls)
+    atomicWriteJson(paths.breakModes, testControls.breakModes)
+    return testControls
+  }
+
+  function updateTestControls(update) {
+    const current = readTestControls()
+    const next = {
+      ...current,
+      ...update,
+      breakModes: update.breakModes
+        ? {
+            ...current.breakModes,
+            ...update.breakModes,
+            apiFailures: {
+              ...current.breakModes.apiFailures,
+              ...(update.breakModes.apiFailures ?? {}),
+            },
+          }
+        : current.breakModes,
+      faults: update.faults
+        ? {
+            ...current.faults,
+            ...update.faults,
+          }
+        : current.faults,
+      tracing: update.tracing
+        ? {
+            ...current.tracing,
+            ...update.tracing,
+          }
+        : current.tracing,
+    }
+
+    return writeTestControls(next)
+  }
+
+  function applyScenarioPreset(presetId) {
+    const preset = defaultPresets.find((candidate) => candidate.id === presetId)
+
+    if (!preset) {
+      throw new Error('Scenario preset not found.')
+    }
+
+    const current = readTestControls()
+    return writeTestControls({
+      ...current,
+      activePresetId: preset.id,
+      breakModes: deepClone(preset.breakModes),
+      faults: deepClone(preset.faults),
+    })
   }
 
   function mergeBreakModes(update) {
@@ -205,12 +312,21 @@ export function createRuntimeStore(dataDirectory) {
   }
 
   function resetBreakModes() {
-    return writeBreakModes(deepClone(defaultAppConfig.breakModes))
+    const current = readTestControls()
+    writeTestControls({
+      ...current,
+      activePresetId: baselinePreset?.id ?? null,
+      breakModes: deepClone(defaultAppConfig.breakModes),
+      faults: deepClone(defaultTestControls.faults),
+    })
+
+    return deepClone(defaultAppConfig.breakModes)
   }
 
   function resetRuntimeData() {
     writeUsers(deepClone(defaultUsers))
-    writeBreakModes(deepClone(defaultAppConfig.breakModes))
+    writeTestControls(deepClone(defaultTestControls))
+    atomicWriteJson(paths.breakModes, deepClone(defaultAppConfig.breakModes))
     writeProducts(deepClone(defaultProducts))
     writeOrders(deepClone(defaultOrders))
     atomicWriteJson(paths.appState, {
@@ -232,10 +348,15 @@ export function createRuntimeStore(dataDirectory) {
     createUser,
     updateUser,
     deleteUser,
+    listScenarioPresets,
     readBreakModes,
     writeBreakModes,
     mergeBreakModes,
     resetBreakModes,
+    readTestControls,
+    writeTestControls,
+    updateTestControls,
+    applyScenarioPreset,
     readProducts,
     writeProducts,
     updateProduct,

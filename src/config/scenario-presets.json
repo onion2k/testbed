@@ -1,0 +1,214 @@
+{
+  "presets": [
+    {
+      "id": "baseline",
+      "label": "Baseline",
+      "description": "Clean runtime defaults with no faults or break modes enabled.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": false
+      },
+      "faults": {
+        "auth.login": { "enabled": false, "status": 401, "mode": "http-error", "latencyMs": null, "message": null },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.overview": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    },
+    {
+      "id": "auth-expired",
+      "label": "Auth Expired",
+      "description": "Login requests fail with unauthorized responses.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": false
+      },
+      "faults": {
+        "auth.login": { "enabled": true, "status": 401, "mode": "http-error", "latencyMs": null, "message": "Session expired. Sign in again." },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.overview": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    },
+    {
+      "id": "inventory-empty",
+      "label": "Inventory Empty",
+      "description": "The catalog returns an empty visible product list.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": true
+      },
+      "faults": {
+        "auth.login": { "enabled": false, "status": 401, "mode": "http-error", "latencyMs": null, "message": null },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.overview": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    },
+    {
+      "id": "orders-api-422",
+      "label": "Orders API 422",
+      "description": "Order creation returns a validation-style failure.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": false
+      },
+      "faults": {
+        "auth.login": { "enabled": false, "status": 401, "mode": "http-error", "latencyMs": null, "message": null },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": true, "status": 422, "mode": "http-error", "latencyMs": null, "message": "Order payload failed validation." },
+        "admin.overview": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    },
+    {
+      "id": "admin-slow",
+      "label": "Admin Slow",
+      "description": "Admin overview responses are delayed while the rest of the app stays fast.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": false
+      },
+      "faults": {
+        "auth.login": { "enabled": false, "status": 401, "mode": "http-error", "latencyMs": null, "message": null },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.overview": { "enabled": true, "status": 200, "mode": "http-error", "latencyMs": 2400, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    },
+    {
+      "id": "schema-corruption-products",
+      "label": "Schema Corruption Products",
+      "description": "Products endpoint returns schema-breaking payloads for resilience testing.",
+      "breakModes": {
+        "apiFailures": {
+          "products": false,
+          "orders": false,
+          "admin": false
+        },
+        "highLatency": false,
+        "selectorsChange": false,
+        "contentChange": false,
+        "disableAddToCart": false,
+        "brokenCheckoutTotal": false,
+        "bypassVipGuard": false,
+        "bypassAdminGuard": false,
+        "emptyProductList": false
+      },
+      "faults": {
+        "auth.login": { "enabled": false, "status": 401, "mode": "http-error", "latencyMs": null, "message": null },
+        "runtime.bootstrap": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "shop.products": { "enabled": true, "status": 200, "mode": "malformed-json", "latencyMs": null, "message": "Catalog payload was truncated." },
+        "orders.list": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "orders.create": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.overview": { "enabled": false, "status": 503, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.list": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.create": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.update": { "enabled": false, "status": 422, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.users.delete": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.products.update": { "enabled": false, "status": 409, "mode": "http-error", "latencyMs": null, "message": null },
+        "admin.resetRuntime": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null },
+        "desktop.context": { "enabled": false, "status": 500, "mode": "http-error", "latencyMs": null, "message": null }
+      }
+    }
+  ]
+}

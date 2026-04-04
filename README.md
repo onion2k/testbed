@@ -99,3 +99,20 @@ The Electron window opens `/desktop` and exposes a desktop-only admin shell with
 - Browser-local session and cart state are still cleared by `/reset`
 - Runtime JSON state is reset through desktop admin actions or the test-control/admin APIs
 - Packaging config is defined in `package.json` under `build`
+
+## Workshop
+
+- [Manual QA to Automation Workshop](./docs/manual-qa-to-automation-workshop.md)
+- [Shift-Left Test Planning Workshop](./docs/shift-left-test-planning-workshop.md)
+- [Bug Investigation Workshop](./docs/bug-investigation-workshop.md)
+- [Negative Testing Workshop](./docs/negative-testing-workshop.md)
+- [Flaky Test Reduction Workshop](./docs/flaky-test-reduction-workshop.md)
+- [Test Case Design Workshop](./docs/test-case-design-workshop.md)
+- [Selectors and Testability Workshop](./docs/selectors-and-testability-workshop.md)
+- [Regression Strategy Workshop](./docs/regression-strategy-workshop.md)
+- [Risk-Based Testing Workshop](./docs/risk-based-testing-workshop.md)
+- [API Contract Testing Workshop](./docs/api-contract-testing-workshop.md)
+- [Exploratory Testing to Automation Workshop](./docs/exploratory-testing-to-automation-workshop.md)
+- [Accessibility Testing Workshop](./docs/accessibility-testing-workshop.md)
+- [Test Data Management Workshop](./docs/test-data-management-workshop.md)
+- [Release Readiness Workshop](./docs/release-readiness-workshop.md)

@@ -13,33 +13,49 @@ import { AuthProvider } from './auth'
 import { useAuth } from './auth-context'
 import { breakModes, contentLabels, demoConfig, demoUsers } from './lib/demo-config'
 import {
+  applyScenarioPreset,
+  clearRequestTraces,
   calculateSubtotal,
   createUser,
   deleteUser,
   fetchAdminSnapshot,
   fetchOrders,
+  fetchPostmanCollection,
+  fetchPostmanEnvironment,
   fetchProducts,
+  fetchRequestTraces,
+  fetchScenarioPresets,
+  fetchTestControlsConfig,
   refreshDesktopContext,
   resetBreakModes,
   resetRuntimeData,
   saveBreakModes,
   submitOrder,
+  updateTestControlsConfig,
+  updateTracingConfig,
   updateProduct,
   updateUser,
 } from './lib/demo-api'
 import { qaClass, testId } from './lib/selectors'
 import { getStoredCart, resetDemoState, setStoredCart } from './lib/storage'
+import { defaultWorkshopSlug, workshopEntries } from './lib/workshops'
 import type {
   AdminSnapshot,
   BreakModes,
   CartItem,
   DemoUser,
   DesktopContext,
+  EndpointFaultConfig,
+  EndpointKey,
+  FaultResponseMode,
   Order,
   PaymentDetails,
   Product,
+  RequestTraceEntry,
   Role,
+  ScenarioPreset,
   ShippingDetails,
+  TestControlsConfig,
 } from './types'
 
 function currency(value: number) {
@@ -55,6 +71,210 @@ function inputClass(hasError: boolean) {
       ? 'border-rose-500 bg-rose-50 focus:border-rose-600'
       : 'border-stone-300 focus:border-slate-500'
   }`
+}
+
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(`[^`]+`)/g)
+
+  return parts.map((part, index) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={`${part}-${index}`} className="rounded bg-stone-100 px-1.5 py-0.5 font-mono text-[0.95em] text-slate-800">
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return part
+  })
+}
+
+function MarkdownDocument({ markdown }: { markdown: string }) {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n')
+  const blocks: ReactNode[] = []
+  let index = 0
+
+  function collectParagraph(startIndex: number) {
+    const collected: string[] = []
+    let cursor = startIndex
+
+    while (cursor < lines.length) {
+      const line = lines[cursor]
+      if (!line.trim()) break
+      if (/^#{1,6}\s/.test(line) || /^[-*]\s/.test(line) || /^\d+\.\s/.test(line) || /^```/.test(line) || /^\|/.test(line)) break
+      collected.push(line.trim())
+      cursor += 1
+    }
+
+    return {
+      text: collected.join(' '),
+      nextIndex: cursor,
+    }
+  }
+
+  function collectList(startIndex: number, ordered: boolean) {
+    const items: string[] = []
+    let cursor = startIndex
+    const pattern = ordered ? /^\d+\.\s+(.*)$/ : /^[-*]\s+(.*)$/
+
+    while (cursor < lines.length) {
+      const match = lines[cursor].match(pattern)
+      if (!match) break
+      items.push(match[1])
+      cursor += 1
+    }
+
+    return { items, nextIndex: cursor }
+  }
+
+  function collectCodeBlock(startIndex: number) {
+    const firstLine = lines[startIndex]
+    const language = firstLine.replace(/^```/, '').trim()
+    const content: string[] = []
+    let cursor = startIndex + 1
+
+    while (cursor < lines.length && !lines[cursor].startsWith('```')) {
+      content.push(lines[cursor])
+      cursor += 1
+    }
+
+    return {
+      language,
+      code: content.join('\n'),
+      nextIndex: cursor + 1,
+    }
+  }
+
+  function collectTable(startIndex: number) {
+    const tableLines: string[] = []
+    let cursor = startIndex
+
+    while (cursor < lines.length && lines[cursor].startsWith('|')) {
+      tableLines.push(lines[cursor])
+      cursor += 1
+    }
+
+    const rows = tableLines
+      .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
+      .filter((row) => row.length > 0)
+
+    const [header, separator, ...body] = rows
+    const usableBody = separator?.every((cell) => /^:?-{3,}:?$/.test(cell)) ? body : [separator, ...body].filter(Boolean)
+
+    return {
+      header: header ?? [],
+      body: usableBody,
+      nextIndex: cursor,
+    }
+  }
+
+  while (index < lines.length) {
+    const line = lines[index]
+
+    if (!line.trim()) {
+      index += 1
+      continue
+    }
+
+    if (/^#{1,6}\s/.test(line)) {
+      const level = line.match(/^#+/)?.[0].length ?? 1
+      const text = line.replace(/^#{1,6}\s+/, '')
+      const className =
+        {
+          1: 'text-4xl font-semibold tracking-tight text-slate-900',
+          2: 'mt-10 text-2xl font-semibold text-slate-900',
+          3: 'mt-8 text-xl font-semibold text-slate-900',
+          4: 'mt-6 text-lg font-semibold text-slate-900',
+        }[level] ?? 'mt-6 text-base font-semibold text-slate-900'
+
+      blocks.push(
+        <div key={`heading-${index}`} className={className}>
+          {renderInlineMarkdown(text)}
+        </div>,
+      )
+      index += 1
+      continue
+    }
+
+    if (line.startsWith('```')) {
+      const block = collectCodeBlock(index)
+      blocks.push(
+        <pre key={`code-${index}`} className="overflow-x-auto rounded-[1.5rem] bg-slate-950 p-5 text-sm text-slate-100">
+          <code>{block.code}</code>
+        </pre>,
+      )
+      index = block.nextIndex
+      continue
+    }
+
+    if (line.startsWith('|')) {
+      const table = collectTable(index)
+      blocks.push(
+        <div key={`table-${index}`} className="overflow-x-auto rounded-[1.5rem] border border-stone-200 bg-white">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <thead className="bg-stone-100 text-slate-700">
+              <tr>
+                {table.header.map((cell, cellIndex) => (
+                  <th key={`header-${cellIndex}`} className="border-b border-stone-200 px-4 py-3 font-semibold">
+                    {renderInlineMarkdown(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.body.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`} className="border-t border-stone-200">
+                  {row.map((cell, cellIndex) => (
+                    <td key={`cell-${rowIndex}-${cellIndex}`} className="px-4 py-3 align-top text-slate-700">
+                      {renderInlineMarkdown(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      )
+      index = table.nextIndex
+      continue
+    }
+
+    if (/^[-*]\s/.test(line)) {
+      const list = collectList(index, false)
+      blocks.push(
+        <ul key={`ul-${index}`} className="ml-6 list-disc space-y-2 text-slate-700">
+          {list.items.map((item, itemIndex) => (
+            <li key={`ul-item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>,
+      )
+      index = list.nextIndex
+      continue
+    }
+
+    if (/^\d+\.\s/.test(line)) {
+      const list = collectList(index, true)
+      blocks.push(
+        <ol key={`ol-${index}`} className="ml-6 list-decimal space-y-2 text-slate-700">
+          {list.items.map((item, itemIndex) => (
+            <li key={`ol-item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ol>,
+      )
+      index = list.nextIndex
+      continue
+    }
+
+    const paragraph = collectParagraph(index)
+    blocks.push(
+      <p key={`paragraph-${index}`} className="leading-7 text-slate-700">
+        {renderInlineMarkdown(paragraph.text)}
+      </p>,
+    )
+    index = paragraph.nextIndex
+  }
+
+  return <div className="space-y-5">{blocks}</div>
 }
 
 function canAccessRole(userRole: Role, requiredRole: Role) {
@@ -144,6 +364,71 @@ function validateManagedUser(user: DemoUser) {
   }
 
   return errors
+}
+
+const endpointKeys: EndpointKey[] = [
+  'auth.login',
+  'runtime.bootstrap',
+  'shop.products',
+  'orders.list',
+  'orders.create',
+  'admin.overview',
+  'admin.users.list',
+  'admin.users.create',
+  'admin.users.update',
+  'admin.users.delete',
+  'admin.products.update',
+  'admin.resetRuntime',
+  'desktop.context',
+]
+
+const endpointLabels: Record<EndpointKey, string> = {
+  'auth.login': 'Auth login',
+  'runtime.bootstrap': 'Runtime bootstrap',
+  'shop.products': 'Shop products',
+  'orders.list': 'Orders list',
+  'orders.create': 'Orders create',
+  'admin.overview': 'Admin overview',
+  'admin.users.list': 'Admin users list',
+  'admin.users.create': 'Admin users create',
+  'admin.users.update': 'Admin users update',
+  'admin.users.delete': 'Admin users delete',
+  'admin.products.update': 'Admin product update',
+  'admin.resetRuntime': 'Admin reset runtime',
+  'desktop.context': 'Desktop context',
+}
+
+const faultModes: FaultResponseMode[] = [
+  'http-error',
+  'malformed-json',
+  'missing-fields',
+  'wrong-types',
+  'empty-body',
+  'stale-success',
+]
+
+const faultStatuses: EndpointFaultConfig['status'][] = [200, 400, 401, 403, 404, 409, 422, 500, 503]
+
+function createDownload(filename: string, payload: unknown) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
+function arePresetValuesModified(config: TestControlsConfig | null, presets: ScenarioPreset[]) {
+  if (!config?.activePresetId) return false
+
+  const preset = presets.find((candidate) => candidate.id === config.activePresetId)
+  if (!preset) return false
+
+  return (
+    JSON.stringify(preset.breakModes) !== JSON.stringify(config.breakModes) ||
+    JSON.stringify(preset.faults) !== JSON.stringify(config.faults)
+  )
 }
 
 const isDesktop = Boolean(window.desktopBridge?.isDesktop)
@@ -1108,9 +1393,15 @@ function DesktopRoute() {
 }
 
 function DesktopAdminPage() {
-  const [tab, setTab] = useState<'dashboard' | 'catalog' | 'users' | 'break-modes' | 'data-folder' | 'server'>('dashboard')
+  const [tab, setTab] = useState<
+    'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'data-folder' | 'server'
+  >('dashboard')
+  const [selectedWorkshopSlug, setSelectedWorkshopSlug] = useState(defaultWorkshopSlug)
   const [overview, setOverview] = useState<AdminSnapshot | null>(null)
   const [context, setContext] = useState<DesktopContext | null>(null)
+  const [testControls, setTestControls] = useState<TestControlsConfig | null>(null)
+  const [presets, setPresets] = useState<ScenarioPreset[]>([])
+  const [traces, setTraces] = useState<RequestTraceEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userForm, setUserForm] = useState<DemoUser>({
@@ -1123,6 +1414,19 @@ function DesktopAdminPage() {
   const [userErrors, setUserErrors] = useState<Partial<Record<keyof DemoUser, string>>>({})
   const [savingUser, setSavingUser] = useState(false)
   const [savingBreakModes, setSavingBreakModes] = useState(false)
+  const [savingFaults, setSavingFaults] = useState(false)
+  const [savingTracing, setSavingTracing] = useState(false)
+  const presetModified = useMemo(() => arePresetValuesModified(testControls, presets), [presets, testControls])
+  const selectedWorkshop =
+    workshopEntries.find((entry) => entry.slug === selectedWorkshopSlug) ?? workshopEntries[0] ?? null
+  const groupedWorkshops = useMemo(
+    () =>
+      workshopEntries.reduce<Record<string, typeof workshopEntries>>((groups, workshop) => {
+        groups[workshop.category] = [...(groups[workshop.category] ?? []), workshop]
+        return groups
+      }, {}),
+    [],
+  )
 
   async function loadDesktopData(options?: { silent?: boolean }) {
     if (!options?.silent) {
@@ -1130,12 +1434,16 @@ function DesktopAdminPage() {
     }
 
     try {
-      const [nextOverview, nextContext] = await Promise.all([
+      const [nextOverview, nextContext, nextTestControls, nextPresets] = await Promise.all([
         fetchAdminSnapshot(),
         window.desktopBridge?.getContext() ?? Promise.resolve(null),
+        fetchTestControlsConfig(),
+        fetchScenarioPresets(),
       ])
       setOverview(nextOverview)
       setContext(nextContext)
+      setTestControls(nextTestControls)
+      setPresets(nextPresets)
       setError(null)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load desktop data.')
@@ -1151,12 +1459,9 @@ function DesktopAdminPage() {
   }, [])
 
   useEffect(() => {
-    const pollId = window.setInterval(() => {
-      void loadDesktopData({ silent: true })
-    }, 3000)
-
-    return () => window.clearInterval(pollId)
-  }, [])
+    if (tab !== 'tracing') return
+    void handleRefreshTraces()
+  }, [tab])
 
   async function handleSaveUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -1200,6 +1505,112 @@ function DesktopAdminPage() {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save break modes.')
     } finally {
       setSavingBreakModes(false)
+    }
+  }
+
+  async function handleFaultChange(endpointKey: EndpointKey, nextFault: EndpointFaultConfig) {
+    setSavingFaults(true)
+    try {
+      const nextConfig = await updateTestControlsConfig({
+        faults: {
+          [endpointKey]: nextFault,
+        },
+      })
+      setTestControls(nextConfig)
+      await loadDesktopData({ silent: true })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save fault configuration.')
+    } finally {
+      setSavingFaults(false)
+    }
+  }
+
+  async function handleClearFaults() {
+    if (!testControls) return
+
+    setSavingFaults(true)
+    try {
+      const cleared = Object.fromEntries(
+        endpointKeys.map((endpointKey) => [
+          endpointKey,
+          {
+            ...testControls.faults[endpointKey],
+            enabled: false,
+            latencyMs: null,
+            message: null,
+            mode: 'http-error',
+            status: 500,
+          },
+        ]),
+      ) as Record<EndpointKey, EndpointFaultConfig>
+
+      const nextConfig = await updateTestControlsConfig({ faults: cleared })
+      setTestControls(nextConfig)
+      await loadDesktopData({ silent: true })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to clear endpoint faults.')
+    } finally {
+      setSavingFaults(false)
+    }
+  }
+
+  async function handleApplyPreset(presetId: string) {
+    try {
+      const nextConfig = await applyScenarioPreset(presetId)
+      setTestControls(nextConfig)
+      await loadDesktopData()
+    } catch (applyError) {
+      setError(applyError instanceof Error ? applyError.message : 'Failed to apply scenario preset.')
+    }
+  }
+
+  async function handleRestorePreset() {
+    if (!testControls?.activePresetId) return
+    await handleApplyPreset(testControls.activePresetId)
+  }
+
+  async function handleTracingUpdate(update: Partial<TestControlsConfig['tracing']>) {
+    setSavingTracing(true)
+    try {
+      const nextConfig = await updateTracingConfig(update)
+      setTestControls(nextConfig)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to update tracing.')
+    } finally {
+      setSavingTracing(false)
+    }
+  }
+
+  async function handleRefreshTraces() {
+    try {
+      setTraces(await fetchRequestTraces())
+    } catch (traceError) {
+      setError(traceError instanceof Error ? traceError.message : 'Failed to load traces.')
+    }
+  }
+
+  async function handleClearTraces() {
+    try {
+      await clearRequestTraces()
+      await handleRefreshTraces()
+    } catch (traceError) {
+      setError(traceError instanceof Error ? traceError.message : 'Failed to clear traces.')
+    }
+  }
+
+  async function handleDownloadCollection() {
+    try {
+      createDownload('testbed-postman-collection.json', await fetchPostmanCollection())
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'Failed to download Postman collection.')
+    }
+  }
+
+  async function handleDownloadEnvironment() {
+    try {
+      createDownload('testbed-postman-environment.json', await fetchPostmanEnvironment())
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'Failed to download Postman environment.')
     }
   }
 
@@ -1252,7 +1663,7 @@ function DesktopAdminPage() {
     )
   }
 
-  if (!overview) return null
+  if (!overview || !testControls) return null
 
   const compactRouteDescriptions: Record<string, string> = {
     '/': 'Route directory and current break-mode status.',
@@ -1273,11 +1684,16 @@ function DesktopAdminPage() {
             <h1 className="text-3xl font-semibold">Testbed Admin</h1>
             <p className="mt-2 text-slate-600">Manage runtime JSON state, localhost server settings, and QA test data without using the CLI.</p>
           </div>
-          {context?.serverUrl ? (
-            <a href={context.serverUrl} target="_blank" rel="noreferrer" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
-              Open web app
-            </a>
-          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <button type="button" onClick={() => void loadDesktopData()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              Refresh data
+            </button>
+            {context?.serverUrl ? (
+              <a href={context.serverUrl} target="_blank" rel="noreferrer" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+                Open web app
+              </a>
+            ) : null}
+          </div>
         </div>
         {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
       </section>
@@ -1288,6 +1704,10 @@ function DesktopAdminPage() {
           ['catalog', 'Products & Orders'],
           ['users', 'Users'],
           ['break-modes', 'Break Modes'],
+          ['scenarios', 'Scenarios & Faults'],
+          ['tracing', 'Tracing'],
+          ['postman', 'Postman'],
+          ['workshops', 'Workshops'],
           ['data-folder', 'Data Folder'],
           ['server', 'Server'],
         ].map(([value, label]) => (
@@ -1312,8 +1732,8 @@ function DesktopAdminPage() {
                 ['Orders', String(overview.orders.length)],
                 ['Products', String(overview.products.length)],
                 ['Visible products', String(overview.products.filter((product) => !product.hidden).length)],
-                ['Server port', String(context?.port ?? 'n/a')],
-                ['Fallback port', context?.usedFallbackPort ? 'Yes' : 'No'],
+                ['Active preset', testControls.activePresetId ?? 'none'],
+                ['Trace entries', String(traces.length)],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
@@ -1327,6 +1747,9 @@ function DesktopAdminPage() {
               </button>
               <button type="button" onClick={() => { resetDemoState(); window.location.reload() }} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Reset browser state
+              </button>
+              <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                Refresh traces
               </button>
             </div>
           </section>
@@ -1352,16 +1775,24 @@ function DesktopAdminPage() {
           </section>
 
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
-            <h2 className="text-2xl font-semibold">Break modes</h2>
+            <h2 className="text-2xl font-semibold">Runtime controls</h2>
             <dl className="mt-4 space-y-2 text-sm">
-              {Object.entries(overview.breakModes).map(([key, value]) => (
-                <div key={key} className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                  <dt className="text-xs text-slate-600">{key}</dt>
-                  <dd className="font-mono text-xs text-slate-900 text-right">
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                  </dd>
-                </div>
-              ))}
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                <dt className="text-xs text-slate-600">Active preset</dt>
+                <dd className="font-mono text-xs text-slate-900">{testControls.activePresetId ?? 'none'}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                <dt className="text-xs text-slate-600">Preset modified</dt>
+                <dd className="font-mono text-xs text-slate-900">{presetModified ? 'Yes' : 'No'}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                <dt className="text-xs text-slate-600">Tracing enabled</dt>
+                <dd className="font-mono text-xs text-slate-900">{testControls.tracing.enabled ? 'Yes' : 'No'}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                <dt className="text-xs text-slate-600">Tracing max entries</dt>
+                <dd className="font-mono text-xs text-slate-900">{testControls.tracing.maxEntries}</dd>
+              </div>
             </dl>
           </section>
         </div>
@@ -1543,6 +1974,257 @@ function DesktopAdminPage() {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {tab === 'scenarios' ? (
+        <div className="grid gap-6">
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold">Scenario Presets</h2>
+                <p className="mt-2 text-slate-600">Apply named test states and compare them against live modifications.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <span className="rounded-full bg-stone-100 px-3 py-2 text-sm text-slate-700">
+                  Active preset: <strong>{testControls.activePresetId ?? 'none'}</strong>
+                </span>
+                <span className={`rounded-full px-3 py-2 text-sm ${presetModified ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                  {presetModified ? 'Modified from preset' : 'Matches preset'}
+                </span>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              {presets.map((preset) => (
+                <article key={preset.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">{preset.label}</h3>
+                      <p className="mt-2 text-sm text-slate-600">{preset.description}</p>
+                    </div>
+                    <button type="button" onClick={() => void handleApplyPreset(preset.id)} className="btn-primary rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                      Apply
+                    </button>
+                  </div>
+                  <p className="mt-3 font-mono text-xs text-slate-500">{preset.id}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold">Fault Matrix</h2>
+                <p className="mt-2 text-slate-600">Configure endpoint-specific fault responses and latency overrides.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={() => void handleClearFaults()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={savingFaults}>
+                  Clear all faults
+                </button>
+                <button type="button" onClick={() => void handleRestorePreset()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={!testControls.activePresetId || savingFaults}>
+                  Restore active preset
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {endpointKeys.map((endpointKey) => {
+                const fault = testControls.faults[endpointKey]
+                return (
+                  <div key={endpointKey} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <div className="grid gap-4 xl:grid-cols-[1.1fr_repeat(5,minmax(0,1fr))] xl:items-center">
+                      <div>
+                        <p className="font-semibold">{endpointLabels[endpointKey]}</p>
+                        <p className="font-mono text-xs text-slate-500">{endpointKey}</p>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={fault.enabled}
+                          onChange={(event) => void handleFaultChange(endpointKey, { ...fault, enabled: event.target.checked })}
+                          disabled={savingFaults}
+                        />
+                        Enabled
+                      </label>
+                      <label className="text-sm">
+                        <span className="mb-1 block text-slate-500">Status</span>
+                        <select className={inputClass(false)} value={String(fault.status)} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, status: Number(event.target.value) as EndpointFaultConfig['status'] })} disabled={savingFaults}>
+                          {faultStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-sm">
+                        <span className="mb-1 block text-slate-500">Mode</span>
+                        <select className={inputClass(false)} value={fault.mode} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, mode: event.target.value as FaultResponseMode })} disabled={savingFaults}>
+                          {faultModes.map((mode) => (
+                            <option key={mode} value={mode}>
+                              {mode}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-sm">
+                        <span className="mb-1 block text-slate-500">Latency ms</span>
+                        <input className={inputClass(false)} value={fault.latencyMs ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, latencyMs: event.target.value ? Number(event.target.value) : null })} disabled={savingFaults} />
+                      </label>
+                      <label className="text-sm">
+                        <span className="mb-1 block text-slate-500">Message</span>
+                        <input className={inputClass(false)} value={fault.message ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, message: event.target.value || null })} disabled={savingFaults} />
+                      </label>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {tab === 'tracing' ? (
+        <div className="grid gap-6">
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold">Trace Viewer</h2>
+                <p className="mt-2 text-slate-600">Inspect recent request metadata, active fault mode, and correlation identifiers.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center gap-2 rounded-full bg-stone-100 px-4 py-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={testControls.tracing.enabled} onChange={(event) => void handleTracingUpdate({ enabled: event.target.checked })} disabled={savingTracing} />
+                  Tracing enabled
+                </label>
+                <select className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm" value={String(testControls.tracing.maxEntries)} onChange={(event) => void handleTracingUpdate({ maxEntries: Number(event.target.value) })} disabled={savingTracing}>
+                  {[25, 50, 100, 250].map((size) => (
+                    <option key={size} value={size}>
+                      {size} entries
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                  Refresh
+                </button>
+                <button type="button" onClick={() => void handleClearTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {traces.length === 0 ? (
+                <p className="text-sm text-slate-600">No traces recorded yet.</p>
+              ) : (
+                traces.map((trace) => (
+                  <details key={trace.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <summary className="cursor-pointer list-none">
+                      <div className="grid gap-3 md:grid-cols-[1.1fr_1fr_0.7fr_0.9fr_0.8fr_1fr] md:items-center">
+                        <span className="text-sm font-medium">{new Date(trace.timestamp).toLocaleTimeString()}</span>
+                        <span className="font-mono text-xs text-slate-600">{trace.pathname}</span>
+                        <span className="text-sm">{trace.method}</span>
+                        <span className="text-sm">Status {trace.responseStatus}</span>
+                        <span className="text-sm">{trace.responseMode}</span>
+                        <span className="font-mono text-xs text-slate-500">{trace.correlationId}</span>
+                      </div>
+                    </summary>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Request</p>
+                        <p className="mt-2 text-sm text-slate-700">Endpoint: {trace.endpointKey}</p>
+                        <p className="mt-2 text-sm text-slate-700">Latency: {trace.latencyMs}ms</p>
+                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{JSON.stringify(trace.requestHeaders, null, 2)}</pre>
+                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.requestBody ?? 'No request body'}</pre>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Response</p>
+                        <p className="mt-2 text-sm text-slate-700">Preset: {trace.presetId ?? 'none'}</p>
+                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied'}</pre>
+                      </div>
+                    </div>
+                  </details>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {tab === 'postman' ? (
+        <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-semibold">Postman Assets</h2>
+          <p className="mt-2 text-slate-600">Download generated collection and environment files based on the running local server.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <button type="button" onClick={() => void handleDownloadCollection()} className="btn-primary rounded-[1.5rem] bg-slate-900 px-5 py-4 text-left font-medium text-white">
+              Download Collection
+            </button>
+            <button type="button" onClick={() => void handleDownloadEnvironment()} className="rounded-[1.5rem] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
+              Download Environment
+            </button>
+            <button type="button" onClick={() => void navigator.clipboard.writeText(context?.serverUrl ?? '')} className="rounded-[1.5rem] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
+              Copy Base URL
+            </button>
+          </div>
+          <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <p className="text-sm text-slate-600">Base URL</p>
+            <p className="mt-2 font-mono text-sm text-slate-900">{context?.serverUrl ?? 'Unavailable'}</p>
+          </div>
+        </section>
+      ) : null}
+
+      {tab === 'workshops' && selectedWorkshop ? (
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="space-y-4 rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Workshop Library</p>
+              <h2 className="mt-3 text-3xl font-semibold">QA Learning Tracks</h2>
+              <p className="mt-3 text-sm text-slate-600">
+                Browse the embedded training guides while using the desktop app controls.
+              </p>
+            </div>
+
+            <div className="space-y-5">
+              {Object.entries(groupedWorkshops).map(([category, entries]) => (
+                <section key={category}>
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{category}</h3>
+                  <div className="mt-3 space-y-2">
+                    {entries.map((workshop) => {
+                      const isActive = workshop.slug === selectedWorkshop.slug
+
+                      return (
+                        <button
+                          key={workshop.slug}
+                          type="button"
+                          onClick={() => setSelectedWorkshopSlug(workshop.slug)}
+                          className={`block w-full rounded-[1.5rem] border px-4 py-3 text-left transition ${
+                            isActive
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-stone-200 bg-stone-50 text-slate-700 hover:border-stone-300 hover:bg-white'
+                          }`}
+                        >
+                          <p className="font-semibold">{workshop.title}</p>
+                          <p className={`mt-2 text-sm ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>{workshop.summary}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </aside>
+
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm lg:p-8">
+            <div className="rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{selectedWorkshop.category}</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">{selectedWorkshop.title}</h2>
+              <p className="mt-3 max-w-3xl text-slate-600">{selectedWorkshop.summary}</p>
+            </div>
+
+            <div className="mt-8">
+              <MarkdownDocument markdown={selectedWorkshop.markdown} />
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {tab === 'data-folder' ? (
