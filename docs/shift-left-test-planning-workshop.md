@@ -114,6 +114,22 @@ This is the beginning of a test approach.
 Many testers jump straight to steps and expected results.
 Shift-left planning starts with risk.
 
+```quiz
+id: risk-before-cases
+question: Why is identifying risks before writing detailed test cases a strong shift-left practice?
+passCondition: all
+options:
+  - id: prioritize
+    label: It helps testers focus coverage on the behaviors that matter most
+    correct: true
+  - id: remove-ui
+    label: It removes the need for UI testing completely
+    correct: false
+  - id: delay-testing
+    label: It ensures testing starts only after all coding is finished
+    correct: false
+```
+
 For each feature, ask:
 
 - what is most likely to break

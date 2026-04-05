@@ -48,7 +48,6 @@ export interface BreakModes {
   apiFailures: {
     products: boolean
     orders: boolean
-    admin: boolean
   }
   highLatency: boolean
   selectorsChange: boolean
@@ -56,7 +55,6 @@ export interface BreakModes {
   disableAddToCart: boolean
   brokenCheckoutTotal: boolean
   bypassVipGuard: boolean
-  bypassAdminGuard: boolean
   emptyProductList: boolean
 }
 

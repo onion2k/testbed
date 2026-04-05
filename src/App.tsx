@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
   Link,
@@ -11,7 +11,14 @@ import {
 } from 'react-router-dom'
 import { AuthProvider } from './auth'
 import { useAuth } from './auth-context'
-import { breakModes, contentLabels, demoConfig, demoUsers } from './lib/demo-config'
+import {
+  breakModes,
+  contentLabels,
+  demoConfig,
+  demoUsers,
+  loadRuntimeConfig,
+  setRuntimeBreakModes,
+} from './lib/demo-config'
 import {
   applyScenarioPreset,
   clearRequestTraces,
@@ -37,7 +44,20 @@ import {
   updateUser,
 } from './lib/demo-api'
 import { qaClass, testId } from './lib/selectors'
-import { getStoredCart, resetDemoState, setStoredCart } from './lib/storage'
+import {
+  getStoredCart,
+  getStoredWorkshopLastView,
+  getStoredWorkshopQuizProgress,
+  getStoredWorkshopReadParts,
+  getStoredWorkshopProgress,
+  resetDemoState,
+  resetWorkshopProgress,
+  setStoredCart,
+  setStoredWorkshopLastView,
+  setStoredWorkshopQuizProgress,
+  setStoredWorkshopReadParts,
+  setStoredWorkshopProgress,
+} from './lib/storage'
 import { defaultWorkshopSlug, workshopEntries } from './lib/workshops'
 import type {
   AdminSnapshot,
@@ -71,6 +91,22 @@ function inputClass(hasError: boolean) {
       ? 'border-rose-500 bg-rose-50 focus:border-rose-600'
       : 'border-stone-300 focus:border-slate-500'
   }`
+}
+
+function calculateDisplayedSubtotal(subtotal: number, hasBrokenCheckoutTotal: boolean) {
+  return hasBrokenCheckoutTotal ? Math.max(subtotal - 7, 0) : subtotal
+}
+
+function calculateCheckoutTotals(subtotal: number, hasBrokenCheckoutTotal: boolean) {
+  const shipping = 12
+  const displayedSubtotal = calculateDisplayedSubtotal(subtotal, hasBrokenCheckoutTotal)
+  const total = displayedSubtotal + shipping
+
+  return {
+    subtotal: displayedSubtotal,
+    shipping,
+    total,
+  }
 }
 
 function renderInlineMarkdown(text: string) {
@@ -179,13 +215,14 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
     if (/^#{1,6}\s/.test(line)) {
       const level = line.match(/^#+/)?.[0].length ?? 1
       const text = line.replace(/^#{1,6}\s+/, '')
+      const isFirstBlock = blocks.length === 0
       const className =
         {
           1: 'text-4xl font-semibold tracking-tight text-slate-900',
-          2: 'mt-10 text-2xl font-semibold text-slate-900',
-          3: 'mt-8 text-xl font-semibold text-slate-900',
-          4: 'mt-6 text-lg font-semibold text-slate-900',
-        }[level] ?? 'mt-6 text-base font-semibold text-slate-900'
+          2: `${isFirstBlock ? '' : 'mt-10 '}text-2xl font-semibold text-slate-900`,
+          3: `${isFirstBlock ? '' : 'mt-8 '}text-xl font-semibold text-slate-900`,
+          4: `${isFirstBlock ? '' : 'mt-6 '}text-lg font-semibold text-slate-900`,
+        }[level] ?? `${isFirstBlock ? '' : 'mt-6 '}text-base font-semibold text-slate-900`
 
       blocks.push(
         <div key={`heading-${index}`} className={className}>
@@ -436,6 +473,7 @@ const isDesktop = Boolean(window.desktopBridge?.isDesktop)
 function AppShell() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const [, setRuntimeVersion] = useState(0)
   const navLinks = [
     ['/', 'Home'],
     ['/shop', 'Shop'],
@@ -444,10 +482,53 @@ function AppShell() {
     ['/login', user ? 'Switch user' : 'Login'],
   ]
 
+  useEffect(() => {
+    let cancelled = false
+    let inFlight = false
+
+    async function syncRuntimeState() {
+      if (inFlight) return
+      inFlight = true
+      try {
+        await loadRuntimeConfig()
+        if (!cancelled) {
+          setRuntimeVersion((current) => current + 1)
+        }
+      } finally {
+        inFlight = false
+      }
+    }
+
+    void syncRuntimeState()
+
+    function handleFocus() {
+      void syncRuntimeState()
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void syncRuntimeState()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    const intervalId = window.setInterval(() => {
+      void syncRuntimeState()
+    }, 2000)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.clearInterval(intervalId)
+    }
+  }, [location.pathname])
+
   if (isDesktop && location.pathname === '/desktop') {
     return (
       <div className="min-h-screen bg-stone-100 text-slate-900">
-        <main className="mx-auto max-w-7xl px-6 py-8">
+        <main className="w-full px-6 py-8">
           <Routes>
             <Route path="/desktop" element={<DesktopRoute />} />
             <Route path="*" element={<Navigate to="/desktop" replace />} />
@@ -557,9 +638,7 @@ function ProtectedRoute({ children, role }: { children: ReactNode; role: Role })
   const { user } = useAuth()
   const location = useLocation()
 
-  const bypass =
-    (role === 'vip' && breakModes.bypassVipGuard) ||
-    (role === 'admin' && breakModes.bypassAdminGuard)
+  const bypass = role === 'vip' && breakModes.bypassVipGuard
 
   if (bypass) {
     return <>{children}</>
@@ -849,6 +928,7 @@ function BasketSummary({
     .filter((item) => item.product)
 
   const subtotal = calculateSubtotal(cart, products)
+  const displayedSubtotal = calculateDisplayedSubtotal(subtotal, breakModes.brokenCheckoutTotal)
 
   return (
     <aside className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
@@ -886,7 +966,7 @@ function BasketSummary({
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4">
         <span className="font-medium">Subtotal</span>
-        <span className="font-semibold">{currency(subtotal)}</span>
+        <span className="font-semibold">{currency(displayedSubtotal)}</span>
       </div>
       <Link
         to="/checkout"
@@ -1138,7 +1218,7 @@ function CheckoutPage() {
   }, [cart])
 
   const subtotal = useMemo(() => calculateSubtotal(cart, products), [cart, products])
-  const displayedTotal = breakModes.brokenCheckoutTotal ? Math.max(subtotal - 7, 0) : subtotal + 12
+  const checkoutTotals = calculateCheckoutTotals(subtotal, breakModes.brokenCheckoutTotal)
 
   function goToNextStep() {
     setError(null)
@@ -1255,7 +1335,7 @@ function CheckoutPage() {
           )}
           <div className="flex items-center justify-between rounded-3xl border border-stone-200 bg-stone-50 p-5">
             <span className="font-medium">Subtotal</span>
-            <span className="font-semibold">{currency(subtotal)}</span>
+            <span className="font-semibold">{currency(checkoutTotals.subtotal)}</span>
           </div>
         </div>
       ) : null}
@@ -1325,15 +1405,15 @@ function CheckoutPage() {
               <dl className="mt-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-600">Subtotal</dt>
-                  <dd>{currency(subtotal)}</dd>
+                  <dd>{currency(checkoutTotals.subtotal)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-600">Shipping</dt>
-                  <dd>{breakModes.brokenCheckoutTotal ? currency(-7) : currency(12)}</dd>
+                  <dd>{currency(checkoutTotals.shipping)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-3 font-semibold">
                   <dt>Total</dt>
-                  <dd>{currency(displayedTotal)}</dd>
+                  <dd>{currency(checkoutTotals.total)}</dd>
                 </div>
               </dl>
             </>
@@ -1393,10 +1473,18 @@ function DesktopRoute() {
 }
 
 function DesktopAdminPage() {
+  const initialWorkshopLastView = getStoredWorkshopLastView()
   const [tab, setTab] = useState<
     'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'data-folder' | 'server'
-  >('dashboard')
-  const [selectedWorkshopSlug, setSelectedWorkshopSlug] = useState(defaultWorkshopSlug)
+  >('workshops')
+  const [selectedWorkshopSlug, setSelectedWorkshopSlug] = useState(initialWorkshopLastView?.workshopSlug ?? defaultWorkshopSlug)
+  const [selectedWorkshopPartSlug, setSelectedWorkshopPartSlug] = useState(initialWorkshopLastView?.partSlug ?? workshopEntries[0]?.parts[0]?.slug ?? 'overview')
+  const [workshopResetVersion, setWorkshopResetVersion] = useState(0)
+  const [workshopProgress, setWorkshopProgress] = useState<Record<string, number>>(() => getStoredWorkshopProgress())
+  const [readWorkshopParts, setReadWorkshopParts] = useState<Record<string, boolean>>(() => getStoredWorkshopReadParts())
+  const [workshopQuizProgress, setWorkshopQuizProgress] = useState<Record<string, boolean>>(() => getStoredWorkshopQuizProgress())
+  const [quizSelections, setQuizSelections] = useState<Record<string, string>>({})
+  const [quizFeedback, setQuizFeedback] = useState<Record<string, string | null>>({})
   const [overview, setOverview] = useState<AdminSnapshot | null>(null)
   const [context, setContext] = useState<DesktopContext | null>(null)
   const [testControls, setTestControls] = useState<TestControlsConfig | null>(null)
@@ -1417,8 +1505,35 @@ function DesktopAdminPage() {
   const [savingFaults, setSavingFaults] = useState(false)
   const [savingTracing, setSavingTracing] = useState(false)
   const presetModified = useMemo(() => arePresetValuesModified(testControls, presets), [presets, testControls])
+  const introductionWorkshop = workshopEntries[0] ?? null
   const selectedWorkshop =
     workshopEntries.find((entry) => entry.slug === selectedWorkshopSlug) ?? workshopEntries[0] ?? null
+  const selectedWorkshopPart =
+    selectedWorkshop?.parts.find((part) => part.slug === selectedWorkshopPartSlug) ??
+    selectedWorkshop?.parts[0] ??
+    null
+  const selectedWorkshopPartIndex = selectedWorkshop?.parts.findIndex((part) => part.slug === selectedWorkshopPart?.slug) ?? -1
+  const selectedWorkshopPartKey =
+    selectedWorkshop && selectedWorkshopPart ? `${selectedWorkshop.slug}:${selectedWorkshopPart.slug}` : null
+  const selectedWorkshopQuizKey =
+    selectedWorkshop && selectedWorkshopPart?.quiz
+      ? `${selectedWorkshop.slug}:${selectedWorkshopPart.slug}:${selectedWorkshopPart.quiz.id}`
+      : null
+  const isSelectedWorkshopPartRead = selectedWorkshopPartKey ? Boolean(readWorkshopParts[selectedWorkshopPartKey]) : false
+  const isSelectedWorkshopQuizPassed =
+    !selectedWorkshopPart?.quiz || (selectedWorkshopQuizKey ? Boolean(workshopQuizProgress[selectedWorkshopQuizKey]) : false)
+  const unlockedWorkshopPartIndex = selectedWorkshop
+    ? Math.max(0, Math.min(workshopProgress[selectedWorkshop.slug] ?? 0, selectedWorkshop.parts.length - 1))
+    : 0
+  const effectiveUnlockedWorkshopPartIndex = selectedWorkshop
+    ? Math.max(
+        unlockedWorkshopPartIndex,
+        isSelectedWorkshopPartRead && isSelectedWorkshopQuizPassed
+          ? Math.min(selectedWorkshopPartIndex + 1, selectedWorkshop.parts.length - 1)
+          : unlockedWorkshopPartIndex,
+        selectedWorkshop.parts.length > 1 ? 1 : 0,
+      )
+    : 0
   const groupedWorkshops = useMemo(
     () =>
       workshopEntries.reduce<Record<string, typeof workshopEntries>>((groups, workshop) => {
@@ -1427,6 +1542,179 @@ function DesktopAdminPage() {
       }, {}),
     [],
   )
+  const workshopContentRef = useRef<HTMLDivElement | null>(null)
+
+  function isWorkshopComplete(workshopSlug: string) {
+    const workshop = workshopEntries.find((entry) => entry.slug === workshopSlug)
+    if (!workshop || workshop.parts.length === 0) return false
+
+    const lastPart = workshop.parts[workshop.parts.length - 1]
+    const lastPartKey = `${workshop.slug}:${lastPart.slug}`
+    const lastPartRead = Boolean(readWorkshopParts[lastPartKey])
+    const lastQuizPassed = !lastPart.quiz || Boolean(workshopQuizProgress[`${workshop.slug}:${lastPart.slug}:${lastPart.quiz.id}`])
+
+    return lastPartRead && lastQuizPassed
+  }
+
+  const isIntroductionComplete = introductionWorkshop ? isWorkshopComplete(introductionWorkshop.slug) : true
+
+  function updateWorkshopProgress(workshopSlug: string, nextUnlockedIndex: number) {
+    setWorkshopProgress((current) => {
+      const previous = current[workshopSlug] ?? 0
+      const nextValue = Math.max(previous, nextUnlockedIndex)
+      if (nextValue === previous) {
+        return current
+      }
+
+      const next = {
+        ...current,
+        [workshopSlug]: nextValue,
+      }
+      setStoredWorkshopProgress(next)
+      return next
+    })
+  }
+
+  function markWorkshopPartRead(partKey: string) {
+    setReadWorkshopParts((current) => {
+      if (current[partKey]) {
+        return current
+      }
+
+      const next = {
+        ...current,
+        [partKey]: true,
+      }
+      setStoredWorkshopReadParts(next)
+      return next
+    })
+  }
+
+  function markWorkshopQuizPassed(quizKey: string) {
+    setWorkshopQuizProgress((current) => {
+      if (current[quizKey]) {
+        return current
+      }
+
+      const next = {
+        ...current,
+        [quizKey]: true,
+      }
+      setStoredWorkshopQuizProgress(next)
+      return next
+    })
+  }
+
+  function checkWorkshopPartCompletion() {
+    const content = workshopContentRef.current
+    if (!content || !selectedWorkshop || !selectedWorkshopPartKey || selectedWorkshopPartIndex < 0) return
+
+    const isAtBottom = content.scrollTop + content.clientHeight >= content.scrollHeight - 24
+    const fitsInView = content.scrollHeight <= content.clientHeight + 24
+
+    if (isAtBottom || fitsInView) {
+      markWorkshopPartRead(selectedWorkshopPartKey)
+      if (isSelectedWorkshopQuizPassed && selectedWorkshopPartIndex < selectedWorkshop.parts.length - 1) {
+        updateWorkshopProgress(selectedWorkshop.slug, selectedWorkshopPartIndex + 1)
+      }
+    }
+  }
+
+  function maybeUnlockWorkshopPart() {
+    if (!selectedWorkshop || selectedWorkshopPartIndex < 0) return
+    if (!isSelectedWorkshopPartRead || !isSelectedWorkshopQuizPassed) return
+    if (selectedWorkshopPartIndex >= selectedWorkshop.parts.length - 1) return
+
+    updateWorkshopProgress(selectedWorkshop.slug, selectedWorkshopPartIndex + 1)
+  }
+
+  function handleQuizSubmit() {
+    if (!selectedWorkshopPart?.quiz || !selectedWorkshopQuizKey) return
+
+    const selectedOptionId = quizSelections[selectedWorkshopQuizKey]
+    const selectedOption = selectedWorkshopPart.quiz.options.find((option) => option.id === selectedOptionId)
+
+    if (!selectedOption) {
+      setQuizFeedback((current) => ({
+        ...current,
+        [selectedWorkshopQuizKey]: 'Choose an answer before continuing.',
+      }))
+      return
+    }
+
+    if (!selectedOption.correct) {
+      setQuizFeedback((current) => ({
+        ...current,
+        [selectedWorkshopQuizKey]: 'Not quite. Re-read the section and try again.',
+      }))
+      return
+    }
+
+    markWorkshopQuizPassed(selectedWorkshopQuizKey)
+    setQuizFeedback((current) => ({
+      ...current,
+      [selectedWorkshopQuizKey]: 'Correct. You can continue when this section is read through.',
+    }))
+    if (selectedWorkshop && isSelectedWorkshopPartRead && selectedWorkshopPartIndex < selectedWorkshop.parts.length - 1) {
+      updateWorkshopProgress(selectedWorkshop.slug, selectedWorkshopPartIndex + 1)
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedWorkshop) return
+    const nextIndex = Math.min(workshopProgress[selectedWorkshop.slug] ?? 0, selectedWorkshop.parts.length - 1)
+    const lastViewedPartBelongsToWorkshop =
+      initialWorkshopLastView?.workshopSlug === selectedWorkshop.slug &&
+      selectedWorkshop.parts.some((part) => part.slug === selectedWorkshopPartSlug)
+    if (lastViewedPartBelongsToWorkshop) return
+    setSelectedWorkshopPartSlug(selectedWorkshop.parts[nextIndex]?.slug ?? selectedWorkshop.parts[0]?.slug ?? 'overview')
+  }, [selectedWorkshopSlug])
+
+  useEffect(() => {
+    if (!introductionWorkshop || isIntroductionComplete) return
+    if (selectedWorkshopSlug === introductionWorkshop.slug) return
+
+    setSelectedWorkshopSlug(introductionWorkshop.slug)
+    setSelectedWorkshopPartSlug(introductionWorkshop.parts[0]?.slug ?? 'overview')
+  }, [isIntroductionComplete, introductionWorkshop?.slug, selectedWorkshopSlug])
+
+  useEffect(() => {
+    if (!selectedWorkshop || !selectedWorkshopPart) return
+    setStoredWorkshopLastView({
+      workshopSlug: selectedWorkshop.slug,
+      partSlug: selectedWorkshopPart.slug,
+    })
+  }, [selectedWorkshop?.slug, selectedWorkshopPart?.slug])
+
+  useEffect(() => {
+    const content = workshopContentRef.current
+    if (!content || !selectedWorkshop || selectedWorkshopPartIndex < 0) return
+
+    content.scrollTop = 0
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      checkWorkshopPartCompletion()
+    })
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkWorkshopPartCompletion()
+    })
+
+    resizeObserver.observe(content)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+      resizeObserver.disconnect()
+    }
+  }, [selectedWorkshop?.slug, selectedWorkshopPartIndex, selectedWorkshopPartSlug, workshopResetVersion])
+
+  useEffect(() => {
+    maybeUnlockWorkshopPart()
+  }, [selectedWorkshop?.slug, selectedWorkshopPartIndex, isSelectedWorkshopPartRead, isSelectedWorkshopQuizPassed])
+
+  function handleWorkshopContentScroll() {
+    checkWorkshopPartCompletion()
+  }
 
   async function loadDesktopData(options?: { silent?: boolean }) {
     if (!options?.silent) {
@@ -1500,6 +1788,7 @@ function DesktopAdminPage() {
     setSavingBreakModes(true)
     try {
       await saveBreakModes(nextBreakModes)
+      setRuntimeBreakModes(nextBreakModes)
       await loadDesktopData()
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save break modes.')
@@ -1557,6 +1846,7 @@ function DesktopAdminPage() {
   async function handleApplyPreset(presetId: string) {
     try {
       const nextConfig = await applyScenarioPreset(presetId)
+      setRuntimeBreakModes(nextConfig.breakModes)
       setTestControls(nextConfig)
       await loadDesktopData()
     } catch (applyError) {
@@ -1629,12 +1919,26 @@ function DesktopAdminPage() {
   async function handleResetRuntime() {
     await resetRuntimeData()
     resetDemoState()
+    await loadRuntimeConfig()
     await loadDesktopData()
   }
 
   async function handleResetBreakModes() {
-    await resetBreakModes()
+    const response = await resetBreakModes()
+    setRuntimeBreakModes(response.breakModes)
     await loadDesktopData()
+  }
+
+  function handleResetWorkshopProgress() {
+    resetWorkshopProgress()
+    setWorkshopProgress({})
+    setReadWorkshopParts({})
+    setWorkshopQuizProgress({})
+    setQuizSelections({})
+    setQuizFeedback({})
+    setSelectedWorkshopSlug(defaultWorkshopSlug)
+    setSelectedWorkshopPartSlug(workshopEntries[0]?.parts[0]?.slug ?? 'overview')
+    setWorkshopResetVersion((current) => current + 1)
   }
 
   async function handleProductAdjust(productId: string, currentStock: number, delta: number) {
@@ -1700,6 +2004,7 @@ function DesktopAdminPage() {
 
       <div className="flex flex-wrap gap-2">
         {[
+          ['workshops', 'Workshops'],
           ['dashboard', 'Dashboard'],
           ['catalog', 'Products & Orders'],
           ['users', 'Users'],
@@ -1707,7 +2012,6 @@ function DesktopAdminPage() {
           ['scenarios', 'Scenarios & Faults'],
           ['tracing', 'Tracing'],
           ['postman', 'Postman'],
-          ['workshops', 'Workshops'],
           ['data-folder', 'Data Folder'],
           ['server', 'Server'],
         ].map(([value, label]) => (
@@ -1934,42 +2238,56 @@ function DesktopAdminPage() {
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {([
-              ['highLatency', 'High latency'],
-              ['selectorsChange', 'Selectors change'],
-              ['contentChange', 'Content change'],
-              ['disableAddToCart', 'Disable add to cart'],
-              ['brokenCheckoutTotal', 'Broken checkout total'],
-              ['bypassVipGuard', 'Bypass VIP guard'],
-              ['bypassAdminGuard', 'Bypass admin guard'],
-              ['emptyProductList', 'Empty product list'],
-            ] as const).map(([key, label]) => (
-              <label key={key} className="flex items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                <span>{label}</span>
-                <input
-                  type="checkbox"
-                  checked={overview.breakModes[key]}
-                  onChange={(event) => void handleBreakModeChange({ ...overview.breakModes, [key]: event.target.checked })}
-                  disabled={savingBreakModes}
-                />
+              ['highLatency', 'High latency', 'Website and API: adds response delay so testers can practise waits, timeouts, and loading-state checks.'],
+              ['selectorsChange', 'Selectors change', 'Website only: changes test hooks and DOM identifiers so brittle selectors are more likely to fail.'],
+              ['contentChange', 'Content change', 'Website only: renames visible labels and headings to expose assertions that are too copy-dependent.'],
+              ['disableAddToCart', 'Disable add to cart', 'Website only: disables the basket action so testers can verify blocked-purchase behaviour and messaging.'],
+              ['brokenCheckoutTotal', 'Broken checkout total', 'Website and API: shows the wrong checkout subtotal so testers can catch calculation and pricing defects.'],
+              ['bypassVipGuard', 'Bypass VIP guard', 'Website only: removes the VIP route restriction so testers can detect broken authorization rules.'],
+              ['emptyProductList', 'Empty product list', 'API first, then website on refetch: returns no products so testers can verify empty states and data-absence handling.'],
+            ] as const).map(([key, label, description]) => (
+              <label key={key} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="font-medium">{label}</span>
+                    <p className="mt-2 text-sm text-slate-600">{description}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={overview.breakModes[key]}
+                    onChange={(event) => void handleBreakModeChange({ ...overview.breakModes, [key]: event.target.checked })}
+                    disabled={savingBreakModes}
+                    className="mt-1"
+                  />
+                </div>
               </label>
             ))}
-            {(['products', 'orders', 'admin'] as const).map((scope) => (
-              <label key={scope} className="flex items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 p-4">
-                <span>API failure: {scope}</span>
-                <input
-                  type="checkbox"
-                  checked={overview.breakModes.apiFailures[scope]}
-                  onChange={(event) =>
-                    void handleBreakModeChange({
-                      ...overview.breakModes,
-                      apiFailures: {
-                        ...overview.breakModes.apiFailures,
-                        [scope]: event.target.checked,
-                      },
-                    })
-                  }
-                  disabled={savingBreakModes}
-                />
+            {([
+              ['products', 'API failure: products', 'Makes product endpoints fail so testers can verify product-list error handling and recovery.'],
+              ['orders', 'API failure: orders', 'Makes order endpoints fail so testers can verify checkout and order-history failure behaviour.'],
+            ] as const).map(([scope, label, description]) => (
+              <label key={scope} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="font-medium">{label}</span>
+                    <p className="mt-2 text-sm text-slate-600">{description}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={overview.breakModes.apiFailures[scope]}
+                    onChange={(event) =>
+                      void handleBreakModeChange({
+                        ...overview.breakModes,
+                        apiFailures: {
+                          ...overview.breakModes.apiFailures,
+                          [scope]: event.target.checked,
+                        },
+                      })
+                    }
+                    disabled={savingBreakModes}
+                    className="mt-1"
+                  />
+                </div>
               </label>
             ))}
           </div>
@@ -2172,10 +2490,10 @@ function DesktopAdminPage() {
         </section>
       ) : null}
 
-      {tab === 'workshops' && selectedWorkshop ? (
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="space-y-4 rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
-            <div>
+      {tab === 'workshops' && selectedWorkshop && selectedWorkshopPart ? (
+        <div className="grid gap-6 xl:h-[calc(100vh-15rem)] xl:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+            <div className="shrink-0">
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Workshop Library</p>
               <h2 className="mt-3 text-3xl font-semibold">QA Learning Tracks</h2>
               <p className="mt-3 text-sm text-slate-600">
@@ -2183,27 +2501,60 @@ function DesktopAdminPage() {
               </p>
             </div>
 
-            <div className="space-y-5">
+            <div className="mt-5 min-h-0 space-y-5 overflow-y-auto pr-1">
               {Object.entries(groupedWorkshops).map(([category, entries]) => (
                 <section key={category}>
                   <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{category}</h3>
                   <div className="mt-3 space-y-2">
                     {entries.map((workshop) => {
                       const isActive = workshop.slug === selectedWorkshop.slug
+                      const isLocked = !isIntroductionComplete && workshop.slug !== introductionWorkshop?.slug
+                      const isCompleted = isWorkshopComplete(workshop.slug)
 
                       return (
                         <button
                           key={workshop.slug}
                           type="button"
-                          onClick={() => setSelectedWorkshopSlug(workshop.slug)}
+                          onClick={() => {
+                            if (isLocked) return
+                            setSelectedWorkshopSlug(workshop.slug)
+                          }}
                           className={`block w-full rounded-[1.5rem] border px-4 py-3 text-left transition ${
                             isActive
                               ? 'border-slate-900 bg-slate-900 text-white'
-                              : 'border-stone-200 bg-stone-50 text-slate-700 hover:border-stone-300 hover:bg-white'
+                              : isLocked
+                                ? 'border-stone-200 bg-stone-100 text-stone-400'
+                                : 'border-stone-200 bg-stone-50 text-slate-700 hover:border-stone-300 hover:bg-white'
                           }`}
+                          disabled={isLocked}
                         >
-                          <p className="font-semibold">{workshop.title}</p>
-                          <p className={`mt-2 text-sm ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>{workshop.summary}</p>
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="font-semibold">{workshop.title}</p>
+                            {isLocked ? (
+                              <span className="rounded-full bg-white/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                                Locked
+                              </span>
+                            ) : isCompleted ? (
+                              <span
+                                className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                                  isActive ? 'bg-white/15 text-slate-100' : 'bg-emerald-100 text-emerald-700'
+                                }`}
+                              >
+                                Completed
+                              </span>
+                            ) : null}
+                          </div>
+                          <p
+                            className={`mt-2 text-sm ${
+                              isActive ? 'text-slate-200' : isLocked ? 'text-stone-500' : 'text-slate-600'
+                            }`}
+                          >
+                            {isLocked
+                              ? 'Complete Introduction to Testbed to unlock this workshop.'
+                              : isCompleted
+                                ? 'Completed.'
+                                : workshop.summary}
+                          </p>
                         </button>
                       )
                     })}
@@ -2213,36 +2564,160 @@ function DesktopAdminPage() {
             </div>
           </aside>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm lg:p-8">
-            <div className="rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{selectedWorkshop.category}</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">{selectedWorkshop.title}</h2>
-              <p className="mt-3 max-w-3xl text-slate-600">{selectedWorkshop.summary}</p>
+          <section className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm lg:p-8">
+            <div className="shrink-0 rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
+              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">{selectedWorkshop.title}</h2>
             </div>
 
-            <div className="mt-8">
-              <MarkdownDocument markdown={selectedWorkshop.markdown} />
+            <div className="mt-6 shrink-0 rounded-[1.5rem] border border-stone-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Part {selectedWorkshopPartIndex + 1} of {selectedWorkshop.parts.length}
+                </p>
+                <div className="grid w-full gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+                  <label className="block text-sm">
+                    <select
+                      className={inputClass(false)}
+                      value={selectedWorkshopPart.slug}
+                      onChange={(event) => {
+                        const nextIndex = selectedWorkshop.parts.findIndex((part) => part.slug === event.target.value)
+                        if (nextIndex > effectiveUnlockedWorkshopPartIndex) return
+                        setSelectedWorkshopPartSlug(event.target.value)
+                      }}
+                    >
+                      {selectedWorkshop.parts.map((part, partIndex) => (
+                        <option
+                          key={part.slug}
+                          value={part.slug}
+                          disabled={partIndex > effectiveUnlockedWorkshopPartIndex}
+                        >
+                          {partIndex + 1}. {part.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWorkshopPartSlug(selectedWorkshop.parts[Math.max(selectedWorkshopPartIndex - 1, 0)]?.slug ?? selectedWorkshopPart.slug)}
+                    className="w-full rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={selectedWorkshopPartIndex <= 0}
+                  >
+                    Previous Part
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedWorkshopPartSlug(
+                        selectedWorkshop.parts[Math.min(selectedWorkshopPartIndex + 1, selectedWorkshop.parts.length - 1)]?.slug ?? selectedWorkshopPart.slug,
+                      )
+                    }
+                    className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-300"
+                    disabled={
+                      selectedWorkshopPartIndex >= selectedWorkshop.parts.length - 1 ||
+                      selectedWorkshopPartIndex + 1 > effectiveUnlockedWorkshopPartIndex
+                    }
+                  >
+                    Next Part
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div
+              ref={workshopContentRef}
+              onScroll={handleWorkshopContentScroll}
+              className="mt-6 min-h-0 overflow-y-auto pr-2"
+            >
+              <MarkdownDocument markdown={selectedWorkshopPart.markdown} />
+              {selectedWorkshopPart.quiz ? (() => {
+                const quiz = selectedWorkshopPart.quiz
+
+                return (
+                <section className="mt-8 rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Knowledge Check</p>
+                  <h3 className="mt-3 text-xl font-semibold text-slate-900">{quiz.question}</h3>
+                  <div className="mt-4 space-y-3">
+                    {quiz.options.map((option) => (
+                      <label key={option.id} className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-slate-700">
+                        <input
+                          type="radio"
+                          name={selectedWorkshopQuizKey ?? quiz.id}
+                          checked={selectedWorkshopQuizKey ? quizSelections[selectedWorkshopQuizKey] === option.id : false}
+                          onChange={() => {
+                            if (!selectedWorkshopQuizKey) return
+                            setQuizSelections((current) => ({
+                              ...current,
+                              [selectedWorkshopQuizKey]: option.id,
+                            }))
+                            setQuizFeedback((current) => ({
+                              ...current,
+                              [selectedWorkshopQuizKey]: null,
+                            }))
+                          }}
+                          disabled={isSelectedWorkshopQuizPassed}
+                          className="mt-1"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleQuizSubmit}
+                      className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-300"
+                      disabled={isSelectedWorkshopQuizPassed}
+                    >
+                      {isSelectedWorkshopQuizPassed ? 'Quiz Passed' : 'Check Answer'}
+                    </button>
+                    {selectedWorkshopQuizKey && quizFeedback[selectedWorkshopQuizKey] ? (
+                      <p className={`text-sm ${isSelectedWorkshopQuizPassed ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {quizFeedback[selectedWorkshopQuizKey]}
+                      </p>
+                    ) : null}
+                  </div>
+                </section>
+                )
+              })() : null}
             </div>
           </section>
         </div>
       ) : null}
 
       {tab === 'data-folder' ? (
-        <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-semibold">Data Folder</h2>
-          <p className="mt-2 text-slate-600">Runtime JSON files are stored outside the app bundle in a user-selected folder.</p>
-          <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 font-mono text-sm text-slate-700">
-            {context?.dataDirectory ?? 'No folder selected'}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button type="button" onClick={() => void handleSelectDataDirectory()} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
-              Choose folder
-            </button>
-            <button type="button" onClick={() => void handleOpenDataDirectory()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
-              Open folder
-            </button>
-          </div>
-        </section>
+        <div className="grid gap-6">
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold">Data Folder</h2>
+            <p className="mt-2 text-slate-600">Runtime JSON files are stored outside the app bundle in a user-selected folder.</p>
+            <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 font-mono text-sm text-slate-700">
+              {context?.dataDirectory ?? 'No folder selected'}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" onClick={() => void handleSelectDataDirectory()} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+                Choose folder
+              </button>
+              <button type="button" onClick={() => void handleOpenDataDirectory()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                Open folder
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold">Workshop Progress</h2>
+            <p className="mt-2 text-slate-600">
+              Workshop completion, read-state, and quiz gate progress are stored locally in the desktop app.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleResetWorkshopProgress}
+                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+              >
+                Clear workshop progress
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {tab === 'server' ? (

@@ -102,6 +102,7 @@ The Electron window opens `/desktop` and exposes a desktop-only admin shell with
 
 ## Workshop
 
+- [Introduction to Testbed](./docs/introduction-to-testbed-workshop.md)
 - [Manual QA to Automation Workshop](./docs/manual-qa-to-automation-workshop.md)
 - [Shift-Left Test Planning Workshop](./docs/shift-left-test-planning-workshop.md)
 - [Bug Investigation Workshop](./docs/bug-investigation-workshop.md)
@@ -116,3 +117,4 @@ The Electron window opens `/desktop` and exposes a desktop-only admin shell with
 - [Accessibility Testing Workshop](./docs/accessibility-testing-workshop.md)
 - [Test Data Management Workshop](./docs/test-data-management-workshop.md)
 - [Release Readiness Workshop](./docs/release-readiness-workshop.md)
+- [Workshop Quiz Authoring](./docs/workshop-quiz-authoring.md)

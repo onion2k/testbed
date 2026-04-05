@@ -377,10 +377,6 @@ function buildBackwardCompatibleFault(endpointKey, breakModes) {
     return { enabled: true, status: 503, mode: 'http-error', latencyMs: null, message: 'Order service request failed.' }
   }
 
-  if (breakModes.apiFailures.admin && endpointKey === 'admin.overview') {
-    return { enabled: true, status: 503, mode: 'http-error', latencyMs: null, message: 'Admin service did not return data.' }
-  }
-
   return null
 }
 
@@ -533,11 +529,12 @@ export async function startTestbedServer({
           break
         case 'orders.create': {
           const products = store.readProducts()
-          const subtotal = (parsedBody.items ?? []).reduce((total, item) => {
+          const rawSubtotal = (parsedBody.items ?? []).reduce((total, item) => {
             const product = products.find((candidate) => candidate.id === item.productId)
             return total + (product?.price ?? 0) * item.quantity
           }, 0)
-          const total = testControls.breakModes.brokenCheckoutTotal ? Math.max(subtotal - 7, 0) : subtotal + 12
+          const subtotal = testControls.breakModes.brokenCheckoutTotal ? Math.max(rawSubtotal - 7, 0) : rawSubtotal
+          const total = subtotal + 12
           const order = {
             id: `ORD-${Date.now()}`,
             createdAt: new Date().toISOString(),

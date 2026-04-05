@@ -71,6 +71,22 @@ The API is the thing you inspect and automate directly.
 
 Before you automate anything, explore the app like a manual tester.
 
+```quiz
+id: manual-exploration-purpose
+question: Why should a tester explore the app manually before recording a first automated flow?
+passCondition: all
+options:
+  - id: understand-behavior
+    label: To understand the user journey, assertions, and dependencies before automating it
+    correct: true
+  - id: avoid-api
+    label: To avoid looking at any API behavior until the end of the workshop
+    correct: false
+  - id: skip-notes
+    label: To reduce the need for notes or observations during testing
+    correct: false
+```
+
 ### 1. Open the app
 
 Open the local browser URL shown by the server, usually:
@@ -235,6 +251,22 @@ These files let you move quickly from exploratory API testing into repeatable co
 ## Part 3: First Automation with Playwright Codegen
 
 Playwright Codegen is a good starting point for manual testers because it converts interactions into a first draft of code.
+
+```quiz
+id: codegen-cleanup-purpose
+question: After using Playwright Codegen, what is the most important next step?
+passCondition: all
+options:
+  - id: refine
+    label: Refine the generated code into stable selectors, explicit setup, and meaningful assertions
+    correct: true
+  - id: freeze
+    label: Keep the generated output unchanged so the recording stays identical
+    correct: false
+  - id: remove-assertions
+    label: Remove assertions so the test only proves the clicks were recorded
+    correct: false
+```
 
 ### 1. Launch Codegen
 

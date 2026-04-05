@@ -53,8 +53,7 @@
   "breakModes": {
     "apiFailures": {
       "products": false,
-      "orders": false,
-      "admin": false
+      "orders": false
     },
     "highLatency": false,
     "selectorsChange": false,
@@ -62,7 +61,6 @@
     "disableAddToCart": false,
     "brokenCheckoutTotal": false,
     "bypassVipGuard": false,
-    "bypassAdminGuard": false,
     "emptyProductList": false
   }
 }
