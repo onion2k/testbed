@@ -39,6 +39,18 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload
 }
 
+async function getAdminAuthorizationHeaders() {
+  const context = await window.desktopBridge?.getContext()
+
+  if (!context?.adminApiToken) {
+    throw new Error('Admin API token is unavailable.')
+  }
+
+  return {
+    Authorization: `Bearer ${context.adminApiToken}`,
+  }
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -73,7 +85,9 @@ export async function fetchOrders() {
 }
 
 export async function fetchAdminSnapshot(): Promise<AdminSnapshot> {
-  const response = await fetch('/api/admin/overview')
+  const response = await fetch('/api/admin/overview', {
+    headers: await getAdminAuthorizationHeaders(),
+  })
   return parseResponse<AdminSnapshot>(response)
 }
 
@@ -143,6 +157,7 @@ export async function updateProduct(productId: string, product: Partial<Product>
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
+      ...(await getAdminAuthorizationHeaders()),
     },
     body: JSON.stringify({ product }),
   })
@@ -188,6 +203,7 @@ export async function saveBreakModes(breakModes: BreakModes) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(await getAdminAuthorizationHeaders()),
     },
     body: JSON.stringify({ breakModes }),
   })
@@ -206,6 +222,7 @@ export async function resetBreakModes() {
 export async function resetRuntimeData() {
   const response = await fetch('/api/admin/reset-runtime', {
     method: 'POST',
+    headers: await getAdminAuthorizationHeaders(),
   })
 
   return parseResponse<{ ok: boolean }>(response)
@@ -216,6 +233,7 @@ export async function createUser(user: DemoUser) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(await getAdminAuthorizationHeaders()),
     },
     body: JSON.stringify({ user }),
   })
@@ -228,6 +246,7 @@ export async function updateUser(username: string, user: Partial<DemoUser>) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      ...(await getAdminAuthorizationHeaders()),
     },
     body: JSON.stringify({ user }),
   })
@@ -238,6 +257,7 @@ export async function updateUser(username: string, user: Partial<DemoUser>) {
 export async function deleteUser(username: string) {
   const response = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, {
     method: 'DELETE',
+    headers: await getAdminAuthorizationHeaders(),
   })
 
   return parseResponse<{ users: DemoUser[] }>(response)

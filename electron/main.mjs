@@ -57,6 +57,7 @@ function desktopContext() {
     port: runtime?.port ?? null,
     usedFallbackPort: runtime?.usedFallbackPort ?? false,
     dataDirectory: currentDataDirectory,
+    adminApiToken: runtime?.adminApiToken ?? null,
   }
 }
 

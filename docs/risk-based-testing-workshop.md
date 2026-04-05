@@ -1,62 +1,117 @@
 # Risk-Based Testing Workshop
 
-This workshop is about prioritisation.
+This workshop shows how prioritization becomes stronger when it is based on consequence and likelihood rather than on habit. The aim is to give a manual tester enough context to feel oriented rather than overwhelmed. A lot of people arrive in automation expecting a sharp break with their earlier skills. In practice, the transition works best when you can see how the habits you already trust connect to a more repeatable and more technical style of testing. This workshop takes that approach from the beginning by slowing down and making the reasoning visible.
 
-Not every part of a product carries the same risk, and not every test deserves the same amount of effort. Risk-based testing helps you decide where deeper attention will create the most value.
+As you read, keep in mind that the goal is not to turn you into a framework specialist in one sitting. The goal is to help you build a mental model of how to identify what matters most, what is most likely to break, and where limited time will make the biggest difference. Once that mental model is steady, the tools become easier to learn because they have a clear purpose. The workshop is therefore written in plain technical language and assumes you are capable, curious, and ready to connect new techniques to the quality instincts you already use every day.
 
-## What Risk Means Here
+## Why This Matters
 
-In testing, risk usually combines ideas such as:
+How to identify what matters most, what is most likely to break, and where limited time will make the biggest difference matters because automation becomes expensive very quickly when it is built on vague thinking. A tester who understands the purpose of a check, the evidence it needs, and the risk it is trying to control will usually produce stronger automation than someone who starts with syntax and hopes the value will appear later. That is why this workshop spends time on explanation rather than only on instructions. The explanation is what lets you transfer the lesson to other products later.
 
-- how bad the impact would be
-- how likely the problem is
-- how much has changed
-- how visible the failure would be
+For manual testers, this is often the moment when automation begins to feel more approachable. Instead of imagining that you must become a different kind of professional, you start to notice that the same activities already matter: noticing behavior, comparing it with an expectation, isolating variables, and deciding what evidence would convince another person. Automation adds structure, speed, and repeatability, but it does not remove the need for judgement. The best automation work still begins with clear thinking.
 
-That gives you a more useful basis for planning than simply treating every screen or feature as equal.
-
-## Why This Helps Manual Testers Moving Into Automation
-
-Automation time is limited.
-
-If you spend the same amount of effort everywhere, you often end up protecting low-value areas while leaving high-value areas relatively weak. Risk thinking helps you avoid that.
+If you skip this foundation, you can still produce scripts, but those scripts will often be fragile or shallow. They may click through a journey without proving much, or they may fail for reasons that are hard to interpret. Spending time here makes the later hands-on work more productive because you understand what you are trying to achieve and what good evidence would look like when you get there.
 
 ## What This Looks Like in Testbed
 
-In Testbed, some journeys naturally carry more weight than others. Checkout, login, and order history usually matter more than a minor content variation because the user and business impact is higher if they fail.
+In Testbed, you can explore comparing customer journeys, admin controls, and failure modes to decide which areas deserve deeper focus first. That makes the lesson unusually practical because the environment is designed to let you move between visible behavior and the hidden state behind it. The browser experience gives you the product journey. The desktop shell gives you controlled setup and observation. The API gives you a direct view of the messages the browser depends on. Those three layers make abstract ideas much easier to understand.
 
-That does not mean the lighter areas do not matter. It means you should think more carefully about where deeper coverage will create the most value.
+A good rhythm while using the app is to read one section, try a small action, and then return to the workshop with a more concrete question in mind. For example, if a section talks about controlling data, apply a preset and watch how the visible experience changes. If a section talks about evidence, open the trace viewer and notice which request best explains what just happened on screen. That pattern turns reading into active learning rather than passive consumption.
+
+Testbed is especially helpful for manual testers because it removes some of the chaos that exists in live production systems. You can reproduce the same state, trigger the same issue, and look at the same response more than once. That gives you space to practise the reasoning that sits behind automation. When you later work in a less controlled environment, you will already have a model for how to think about setup, observations, and proof.
+
+```quiz
+id: risk-priority-check
+question: What is the core idea of risk-based testing?
+passCondition: all
+options:
+  - id: option-1
+    label: Spend effort according to consequence and likelihood rather than habit
+    correct: true
+  - id: option-2
+    label: Test every area equally to feel fair
+    correct: false
+  - id: option-3
+    label: Prioritize only the easiest paths to automate
+    correct: false
+```
 
 ## A Simple Example
 
-Imagine you have limited time to add automation.
+A simple way to make this workshop concrete is to imagine recognizing that checkout totals deserve more attention than cosmetic copy changes because the business and customer impact are higher. At first this may seem like a straightforward product task, but that simplicity is useful. It gives you a small, familiar surface to think with. The important question is not only whether the action succeeds. The important question is what you would want to know, what evidence you would keep, and which part of the system would be the clearest place to check it.
 
-A risk-based approach would usually favour:
+As you walk through that example, try to describe the behavior in plain language before you think about tools. What should the user see? What data must exist for the journey to work? Which response from the API would give the browser enough information to render the right result? If the behavior went wrong, what would count as a meaningful symptom rather than a cosmetic difference? Questions like those are the bridge between exploration and automation. They help you decide what matters enough to be turned into a repeatable check.
 
-- login
-- basket and checkout
-- order creation and order visibility
+Once you have those answers, you can begin to see where different tools fit. A browser test may be the best place to prove that the user sees the right state. A Postman request may be the best place to confirm that a validation rule is enforced. A trace entry may be the clearest way to understand whether the browser problem began with a bad response or with an incorrect client assumption. The example becomes more powerful when you stop treating the tools as separate worlds and start using them to answer one shared testing question.
 
-before spending the same effort on a less critical area. That is not because the smaller area should never be tested. It is because the consequence of failure is not the same.
+## Working Through the Topic
+
+Risk-based testing is sometimes misunderstood as a way to justify doing less work. A better way to see it is as a way to make your effort more honest. All products contain uneven risk. Some failures are annoying but recoverable. Others are expensive, embarrassing, or dangerous. Some areas change every week. Others are stable. Good prioritization acknowledges those differences and uses them to decide where deep testing will pay off most.
+
+Testbed gives you simple examples of this principle. A subtotal defect in checkout has obvious business and customer impact. A wording change in a secondary message matters less unless it affects understanding or accessibility. An authorization issue can be severe even if it affects a less frequently used route. Thinking in those terms helps you allocate attention according to consequence instead of habit.
+
+## How To Practise This Well
+
+A useful routine is to describe risk with two short questions: if this breaks, how bad is it, and how likely is it to break? Those questions are not mathematically perfect, but they are a strong starting point. Use them against one Testbed feature at a time and then decide what kind of coverage the answer justifies. You will quickly notice that not every area deserves the same treatment.
+
+The real strength of risk-based thinking is communication. When you can explain why a checkout scenario deserves deeper coverage than a less critical path, your test decisions become easier for the rest of the team to understand and support.
+
+```quiz
+id: risk-practice-check
+question: Which question best supports risk-based prioritization?
+passCondition: all
+options:
+  - id: option-1
+    label: If this breaks, how bad is it and how likely is it to happen?
+    correct: true
+  - id: option-2
+    label: How many screenshots can this path produce?
+    correct: false
+  - id: option-3
+    label: Which path is most traditional to keep testing first?
+    correct: false
+```
 
 ## Common Beginner Mistake
 
-A common mistake is to assume fairness means giving every feature equal effort.
+The most common beginner mistake in this area is spreading effort evenly across everything just to feel fair, even when the risks are clearly not equal. The problem with that habit is not only that it leads to weaker tests. It also makes learning slower. When you misread the purpose of the activity, every tool feels more confusing because you are asking it to solve the wrong problem.
 
-In testing, equal effort is not always the most useful choice. The more important question is where failure would hurt most and where change is most likely to introduce problems.
+A second version of the same mistake is moving too quickly. New automation engineers often want the comfort of immediate output, so they run to code, copy examples, or record a flow before they have decided what they are trying to prove. The result can look busy and productive while still leaving the important thinking undone. It is much better to pause, name the behavior, name the risk, and then choose the smallest technique that will give you confidence.
+
+When you notice yourself slipping into that pattern, a useful reset is to ask three questions in plain language. What am I trying to learn? What evidence would convince me? What is the simplest repeatable way to get that evidence? Those questions pull you back toward testing judgement and away from tool-driven confusion.
 
 ## What Good Looks Like
 
-Good risk-based thinking means the tester can explain why some areas deserve deeper attention and why others can justifiably be lighter. That explanation is an important professional skill in its own right.
+In this workshop, good practice looks like using business impact, change impact, and defect likelihood to explain why some checks must happen first. It is usually calmer and more deliberate than beginners expect. You are not trying to cover everything at once. You are trying to choose the next most useful thing to understand, check, or improve.
+
+When a tester is working well at this level, their notes and their automation choices start to align. The reason a check exists is clear. The setup supports the behavior being checked. The assertions reflect something meaningful. If the check fails, the failure tells a sensible story. That is the standard to aim for. Not cleverness, and not sheer quantity, but clarity that survives reruns, handovers, and future change.
+
+You should also expect good practice to involve communication. Automation is easier to maintain when the people around you can understand what a test is proving and why it matters. That is true whether you are talking to another tester, a developer, or a product manager. Clear reasoning makes your work easier to trust.
 
 ## Final Thought
 
-Risk-based testing is not about ignoring parts of the product.
+The central lesson of this workshop is that how to identify what matters most, what is most likely to break, and where limited time will make the biggest difference is learnable when you break it into sensible questions and deliberate practice. You do not need to become an expert overnight. You do need to be patient enough to connect each new tool or technique back to a real testing purpose.
 
-It is about choosing where to go deep, where to go lighter, and how to explain those decisions clearly.
+If you take that attitude into the rest of the workshop library, you will get more from Testbed. Use the environment to try things, to observe carefully, and to turn fuzzy instincts into clearer evidence. That is how manual testing experience grows into automation confidence without losing the judgement that made you effective in the first place.
 
 ## Further Reading
 
-- Material on impact and likelihood in test planning
-- Team risk registers or release notes if available
-- Articles on risk-based coverage design
+For further reading, spend time with risk-based testing primers, product-risk workshops, and examples from your own team where prioritization changed release decisions. Read slowly enough to connect the material back to what you just practised in Testbed. The goal is not to collect links. The goal is to compare different explanations until the ideas feel stable enough that you could explain them to another tester in your own words.
+
+If you are learning with teammates, an even better next step is to talk through one real example together. Pick a small product behavior, discuss where you would test it, and compare how each person would collect evidence. Conversations like that turn the workshop from private reading into practical team learning.
+
+```quiz
+id: risk-final-check
+question: How does risk-based thinking help a team?
+passCondition: all
+options:
+  - id: option-1
+    label: It makes testing choices easier to explain in terms of impact and exposure
+    correct: true
+  - id: option-2
+    label: It removes the need for any exploratory work
+    correct: false
+  - id: option-3
+    label: It guarantees that low-risk areas never need checking
+    correct: false
+```

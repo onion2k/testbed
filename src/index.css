@@ -25,6 +25,14 @@ body,
 
 body {
   margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.18), transparent 30%),
+    linear-gradient(180deg, #f8fafc 0%, #f5f5f4 100%);
+  color: #0f172a;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    background-image 180ms ease;
 }
 
 a {
@@ -58,4 +66,107 @@ a {
 .nav-pill-active:hover,
 .nav-pill-active:focus {
   color: #fff;
+}
+
+html.theme-dark {
+  color-scheme: dark;
+}
+
+html.theme-dark body {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  color: #f8fafc;
+}
+
+.theme-dark .bg-stone-100 {
+  background-color: #020617 !important;
+}
+
+.theme-dark .bg-stone-50,
+.theme-dark .bg-white,
+.theme-dark .bg-white\/90 {
+  background-color: #0f172a !important;
+}
+
+.theme-dark .bg-stone-200 {
+  background-color: #334155 !important;
+}
+
+.theme-dark .bg-stone-300,
+.theme-dark .bg-stone-400 {
+  background-color: #475569 !important;
+}
+
+.theme-dark .bg-rose-50 {
+  background-color: rgba(127, 29, 29, 0.24) !important;
+}
+
+.theme-dark .bg-amber-100 {
+  background-color: rgba(146, 64, 14, 0.28) !important;
+}
+
+.theme-dark .bg-emerald-100 {
+  background-color: rgba(6, 78, 59, 0.3) !important;
+}
+
+.theme-dark .bg-white\/70 {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+.theme-dark .border-stone-200,
+.theme-dark .border-stone-300 {
+  border-color: #334155 !important;
+}
+
+.theme-dark .border-rose-200 {
+  border-color: rgba(248, 113, 113, 0.4) !important;
+}
+
+.theme-dark .text-slate-900,
+.theme-dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+.theme-dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+.theme-dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.theme-dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.theme-dark .text-stone-400,
+.theme-dark .text-stone-500 {
+  color: #cbd5e1 !important;
+}
+
+.theme-dark .text-amber-700,
+.theme-dark .text-amber-800 {
+  color: #fcd34d !important;
+}
+
+.theme-dark .text-emerald-700,
+.theme-dark .text-emerald-800 {
+  color: #6ee7b7 !important;
+}
+
+.theme-dark .text-rose-700 {
+  color: #fda4af !important;
+}
+
+.theme-dark .hover\:bg-stone-300:hover {
+  background-color: #475569 !important;
+}
+
+.theme-dark .bg-white\/15 {
+  background-color: rgba(248, 250, 252, 0.15) !important;
+}
+
+.theme-dark .shadow-sm {
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.28) !important;
 }

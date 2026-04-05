@@ -14,18 +14,21 @@ declare global {
         port: number | null
         usedFallbackPort: boolean
         dataDirectory: string | null
+        adminApiToken: string | null
       }>
       selectDataDirectory: () => Promise<{
         serverUrl: string | null
         port: number | null
         usedFallbackPort: boolean
         dataDirectory: string | null
+        adminApiToken: string | null
       }>
       openDataDirectory: () => Promise<{
         serverUrl: string | null
         port: number | null
         usedFallbackPort: boolean
         dataDirectory: string | null
+        adminApiToken: string | null
       }>
     }
   }

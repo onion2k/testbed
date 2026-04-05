@@ -1,71 +1,117 @@
 # Regression Strategy Workshop
 
-This workshop is about deciding what should be checked regularly and how deep that checking needs to be.
+This workshop is about deciding what should be rechecked regularly and what kind of suite each check belongs in. The aim is to give a manual tester enough context to feel oriented rather than overwhelmed. A lot of people arrive in automation expecting a sharp break with their earlier skills. In practice, the transition works best when you can see how the habits you already trust connect to a more repeatable and more technical style of testing. This workshop takes that approach from the beginning by slowing down and making the reasoning visible.
 
-A good regression strategy is not just a very long list of tests. It is a deliberate choice about where confidence should come from.
+As you read, keep in mind that the goal is not to turn you into a framework specialist in one sitting. The goal is to help you build a mental model of how to build sensible smoke, critical-path, and wider regression coverage without treating every old test case as equally valuable forever. Once that mental model is steady, the tools become easier to learn because they have a clear purpose. The workshop is therefore written in plain technical language and assumes you are capable, curious, and ready to connect new techniques to the quality instincts you already use every day.
 
-## Why Strategy Matters
+## Why This Matters
 
-If everything is treated as equally important, teams often end up with slow suites, weak priorities, and confusing results.
+How to build sensible smoke, critical-path, and wider regression coverage without treating every old test case as equally valuable forever matters because automation becomes expensive very quickly when it is built on vague thinking. A tester who understands the purpose of a check, the evidence it needs, and the risk it is trying to control will usually produce stronger automation than someone who starts with syntax and hopes the value will appear later. That is why this workshop spends time on explanation rather than only on instructions. The explanation is what lets you transfer the lesson to other products later.
 
-A better approach is to separate:
+For manual testers, this is often the moment when automation begins to feel more approachable. Instead of imagining that you must become a different kind of professional, you start to notice that the same activities already matter: noticing behavior, comparing it with an expectation, isolating variables, and deciding what evidence would convince another person. Automation adds structure, speed, and repeatability, but it does not remove the need for judgement. The best automation work still begins with clear thinking.
 
-- the checks that must run often
-- the checks that protect the most important flows
-- the checks that go deeper but less frequently
-
-This helps you match effort to value.
-
-## Think in Layers
-
-In practical terms, many teams need some combination of:
-
-- smoke coverage
-- core regression
-- targeted deeper checks
-
-That structure helps you answer a useful question:
-
-What do we need to know quickly, and what do we need to know eventually?
+If you skip this foundation, you can still produce scripts, but those scripts will often be fragile or shallow. They may click through a journey without proving much, or they may fail for reasons that are hard to interpret. Spending time here makes the later hands-on work more productive because you understand what you are trying to achieve and what good evidence would look like when you get there.
 
 ## What This Looks Like in Testbed
 
-In Testbed, you can imagine a small smoke layer for things like login and core navigation, a stronger regression layer for flows such as basket and checkout, and deeper targeted checks for failures, malformed data, or scenario-driven edge cases.
+In Testbed, you can explore looking at shop, checkout, orders, and fault modes and deciding which behaviors deserve fast confidence checks and which belong in deeper packs. That makes the lesson unusually practical because the environment is designed to let you move between visible behavior and the hidden state behind it. The browser experience gives you the product journey. The desktop shell gives you controlled setup and observation. The API gives you a direct view of the messages the browser depends on. Those three layers make abstract ideas much easier to understand.
 
-Thinking in layers helps you decide which checks should run often and which ones are better suited to deeper, less frequent coverage.
+A good rhythm while using the app is to read one section, try a small action, and then return to the workshop with a more concrete question in mind. For example, if a section talks about controlling data, apply a preset and watch how the visible experience changes. If a section talks about evidence, open the trace viewer and notice which request best explains what just happened on screen. That pattern turns reading into active learning rather than passive consumption.
+
+Testbed is especially helpful for manual testers because it removes some of the chaos that exists in live production systems. You can reproduce the same state, trigger the same issue, and look at the same response more than once. That gives you space to practise the reasoning that sits behind automation. When you later work in a less controlled environment, you will already have a model for how to think about setup, observations, and proof.
+
+```quiz
+id: regression-purpose-check
+question: What is regression strategy really deciding?
+passCondition: all
+options:
+  - id: option-1
+    label: Which kinds of repeated checks buy the right level of confidence for their cost
+    correct: true
+  - id: option-2
+    label: How to run every old test forever
+    correct: false
+  - id: option-3
+    label: How to remove all manual testing immediately
+    correct: false
+```
 
 ## A Simple Example
 
-A simple regression strategy might say:
+A simple way to make this workshop concrete is to imagine choosing a small smoke path that proves the product is alive, then a broader regression pack that covers permissions, data handling, and failure behavior. At first this may seem like a straightforward product task, but that simplicity is useful. It gives you a small, familiar surface to think with. The important question is not only whether the action succeeds. The important question is what you would want to know, what evidence you would keep, and which part of the system would be the clearest place to check it.
 
-- run a quick login check often
-- run a checkout happy path regularly
-- keep deeper negative-path flows in a slower layer
+As you walk through that example, try to describe the behavior in plain language before you think about tools. What should the user see? What data must exist for the journey to work? Which response from the API would give the browser enough information to render the right result? If the behavior went wrong, what would count as a meaningful symptom rather than a cosmetic difference? Questions like those are the bridge between exploration and automation. They help you decide what matters enough to be turned into a repeatable check.
 
-That is not about reducing quality. It is about choosing a sensible structure for confidence.
+Once you have those answers, you can begin to see where different tools fit. A browser test may be the best place to prove that the user sees the right state. A Postman request may be the best place to confirm that a validation rule is enforced. A trace entry may be the clearest way to understand whether the browser problem began with a bad response or with an incorrect client assumption. The example becomes more powerful when you stop treating the tools as separate worlds and start using them to answer one shared testing question.
+
+## Working Through the Topic
+
+Regression strategy is really about deciding what confidence you want to buy and how much you are willing to spend for it. Every repeated check has a cost in execution time, maintenance, and investigation. Every omitted check carries some risk. Mature strategy accepts that you cannot remove both cost and risk entirely. Instead, you choose coverage layers with purpose. A smoke check proves the app is alive. A critical-path suite protects revenue or core usage. A broader regression pack explores less frequent but still important combinations and failure states.
+
+Testbed makes these choices easier to discuss because the product is small enough to reason about. You can ask whether a basket and checkout path belongs in smoke, whether role-based access belongs in daily regression, and whether break-mode fault handling belongs in a slower but deeper pack. Those are the same questions real teams face at larger scale. Learning to categorize them now builds useful judgement for later.
+
+## How To Practise This Well
+
+A valuable exercise is to take one feature area and design three layers of coverage for it. First define the fastest possible confidence check. Then define a critical path that covers the main business risk. Finally decide what deeper regression adds beyond the first two layers. This forces you to articulate the purpose of each test instead of placing everything into one undifferentiated suite.
+
+You should know the strategy is improving when the suite becomes easier to explain. If another tester asks why a check exists, the answer should not be 'because we have always run it.' It should be tied to release confidence, business impact, and the kind of risk the check controls.
+
+```quiz
+id: regression-practice-check
+question: What is a good way to design regression coverage?
+passCondition: all
+options:
+  - id: option-1
+    label: Separate smoke, critical-path, and deeper checks by purpose and risk
+    correct: true
+  - id: option-2
+    label: Put every check into one undifferentiated suite
+    correct: false
+  - id: option-3
+    label: Treat all behaviors as equally important
+    correct: false
+```
 
 ## Common Beginner Mistake
 
-A common mistake is to treat regression as one very large undifferentiated group of tests.
+The most common beginner mistake in this area is equating regression with “run everything every time” and slowly creating a suite that is slow, noisy, and hard to trust. The problem with that habit is not only that it leads to weaker tests. It also makes learning slower. When you misread the purpose of the activity, every tool feels more confusing because you are asking it to solve the wrong problem.
 
-That often leads to slow suites, unclear priorities, and difficulty explaining what a passing or failing run really means.
+A second version of the same mistake is moving too quickly. New automation engineers often want the comfort of immediate output, so they run to code, copy examples, or record a flow before they have decided what they are trying to prove. The result can look busy and productive while still leaving the important thinking undone. It is much better to pause, name the behavior, name the risk, and then choose the smallest technique that will give you confidence.
+
+When you notice yourself slipping into that pattern, a useful reset is to ask three questions in plain language. What am I trying to learn? What evidence would convince me? What is the simplest repeatable way to get that evidence? Those questions pull you back toward testing judgement and away from tool-driven confusion.
 
 ## What Good Looks Like
 
-Good regression strategy makes it clear:
+In this workshop, good practice looks like grouping coverage by purpose, cost, and risk so the suite stays understandable and useful. It is usually calmer and more deliberate than beginners expect. You are not trying to cover everything at once. You are trying to choose the next most useful thing to understand, check, or improve.
 
-- what is being protected most often
-- what is being checked more deeply
-- what kind of confidence each layer is supposed to provide
+When a tester is working well at this level, their notes and their automation choices start to align. The reason a check exists is clear. The setup supports the behavior being checked. The assertions reflect something meaningful. If the check fails, the failure tells a sensible story. That is the standard to aim for. Not cleverness, and not sheer quantity, but clarity that survives reruns, handovers, and future change.
+
+You should also expect good practice to involve communication. Automation is easier to maintain when the people around you can understand what a test is proving and why it matters. That is true whether you are talking to another tester, a developer, or a product manager. Clear reasoning makes your work easier to trust.
 
 ## Final Thought
 
-Regression strategy is really about confidence design.
+The central lesson of this workshop is that how to build sensible smoke, critical-path, and wider regression coverage without treating every old test case as equally valuable forever is learnable when you break it into sensible questions and deliberate practice. You do not need to become an expert overnight. You do need to be patient enough to connect each new tool or technique back to a real testing purpose.
 
-It helps you decide where your automation effort should go and what kind of safety each layer is supposed to provide.
+If you take that attitude into the rest of the workshop library, you will get more from Testbed. Use the environment to try things, to observe carefully, and to turn fuzzy instincts into clearer evidence. That is how manual testing experience grows into automation confidence without losing the judgement that made you effective in the first place.
 
 ## Further Reading
 
-- Material on smoke, regression, and critical-path coverage
-- Team guidance on suite organisation if available
-- Articles on balancing speed and confidence in automation suites
+For further reading, spend time with writing on layered test suites, release confidence, and internal team practice around smoke packs and full regression cycles. Read slowly enough to connect the material back to what you just practised in Testbed. The goal is not to collect links. The goal is to compare different explanations until the ideas feel stable enough that you could explain them to another tester in your own words.
+
+If you are learning with teammates, an even better next step is to talk through one real example together. Pick a small product behavior, discuss where you would test it, and compare how each person would collect evidence. Conversations like that turn the workshop from private reading into practical team learning.
+
+```quiz
+id: regression-final-check
+question: What does a healthy regression suite feel like?
+passCondition: all
+options:
+  - id: option-1
+    label: Understandable, purposeful, and grouped by the confidence it is meant to provide
+    correct: true
+  - id: option-2
+    label: Huge, noisy, and justified only by tradition
+    correct: false
+  - id: option-3
+    label: Impossible to explain to another tester
+    correct: false
+```

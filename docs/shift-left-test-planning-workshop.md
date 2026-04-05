@@ -1,140 +1,117 @@
 # Shift-Left Test Planning Workshop
 
-This workshop is about thinking earlier.
+This workshop explains how testers add value earlier by asking sharper questions before execution starts. The aim is to give a manual tester enough context to feel oriented rather than overwhelmed. A lot of people arrive in automation expecting a sharp break with their earlier skills. In practice, the transition works best when you can see how the habits you already trust connect to a more repeatable and more technical style of testing. This workshop takes that approach from the beginning by slowing down and making the reasoning visible.
 
-Many testers are introduced to automation as if the main job is to write scripts after the feature is already finished. Shift-left thinking asks you to move earlier than that. Instead of waiting for a full UI and then reacting, you start by asking useful questions before execution begins.
+As you read, keep in mind that the goal is not to turn you into a framework specialist in one sitting. The goal is to help you build a mental model of how to think about risks, dependencies, contracts, and observability before a feature reaches late-stage testing. Once that mental model is steady, the tools become easier to learn because they have a clear purpose. The workshop is therefore written in plain technical language and assumes you are capable, curious, and ready to connect new techniques to the quality instincts you already use every day.
 
-This is not a tool-first workshop. It is a thinking workshop.
+## Why This Matters
 
-## What Shift Left Means in Real QA Work
+How to think about risks, dependencies, contracts, and observability before a feature reaches late-stage testing matters because automation becomes expensive very quickly when it is built on vague thinking. A tester who understands the purpose of a check, the evidence it needs, and the risk it is trying to control will usually produce stronger automation than someone who starts with syntax and hopes the value will appear later. That is why this workshop spends time on explanation rather than only on instructions. The explanation is what lets you transfer the lesson to other products later.
 
-Shift left does not simply mean “automate sooner”.
+For manual testers, this is often the moment when automation begins to feel more approachable. Instead of imagining that you must become a different kind of professional, you start to notice that the same activities already matter: noticing behavior, comparing it with an expectation, isolating variables, and deciding what evidence would convince another person. Automation adds structure, speed, and repeatability, but it does not remove the need for judgement. The best automation work still begins with clear thinking.
 
-In practice, it means you start asking questions earlier, spotting risks earlier, and deciding sooner which parts of the system should be tested at which level.
+If you skip this foundation, you can still produce scripts, but those scripts will often be fragile or shallow. They may click through a journey without proving much, or they may fail for reasons that are hard to interpret. Spending time here makes the later hands-on work more productive because you understand what you are trying to achieve and what good evidence would look like when you get there.
 
-A weak approach often looks like this:
+## What This Looks Like in Testbed
 
-The feature arrives. Someone clicks around. A few happy-path checks are written. Then bugs are discovered late and everyone scrambles.
+In Testbed, you can explore using presets, API controls, and traceable flows to see how better planning makes both manual and automated testing easier. That makes the lesson unusually practical because the environment is designed to let you move between visible behavior and the hidden state behind it. The browser experience gives you the product journey. The desktop shell gives you controlled setup and observation. The API gives you a direct view of the messages the browser depends on. Those three layers make abstract ideas much easier to understand.
 
-A stronger approach looks different:
+A good rhythm while using the app is to read one section, try a small action, and then return to the workshop with a more concrete question in mind. For example, if a section talks about controlling data, apply a preset and watch how the visible experience changes. If a section talks about evidence, open the trace viewer and notice which request best explains what just happened on screen. That pattern turns reading into active learning rather than passive consumption.
 
-The tester understands the flow before it is complete, identifies important rules, thinks about the API as well as the UI, and asks what would make the feature easy or difficult to test. That is shift-left thinking.
-
-## Use Testbed as the Example Product
-
-Testbed is a useful product for learning this mindset because it has clear user flows and clear dependencies.
-
-The main browser journeys are:
-
-- login
-- shop
-- basket and checkout
-- orders
-- VIP access
-
-The supporting technical pieces are:
-
-- auth API
-- products API
-- orders API
-- runtime state
-- desktop controls
-
-When you plan well, you stop seeing these as separate things. You start seeing them as parts of one testable system.
-
-## Part 1: Start With the Goal of the Feature
-
-Take checkout as an example.
-
-Before writing test cases, ask:
-
-- who is using this
-- what are they trying to achieve
-- what would make the feature unacceptable
-- what data and services does it depend on
-
-This gives you a much stronger foundation than jumping straight to step-by-step cases.
-
-For checkout, the answers might be:
-
-The user is a shopper who wants to place an order. The feature is unacceptable if the order cannot be placed, if the pricing is wrong, if the confirmation is unclear, or if the order does not appear later in history. The feature depends on product data, basket state, and order creation.
-
-That short description already tells you a lot about what needs coverage.
-
-## Part 2: Identify Risk Before Writing Cases
+Testbed is especially helpful for manual testers because it removes some of the chaos that exists in live production systems. You can reproduce the same state, trigger the same issue, and look at the same response more than once. That gives you space to practise the reasoning that sits behind automation. When you later work in a less controlled environment, you will already have a model for how to think about setup, observations, and proof.
 
 ```quiz
-id: risk-before-cases
-question: Why is identifying risks before writing detailed test cases a strong shift-left practice?
+id: shiftleft-clarity-check
+question: What does shift-left testing try to improve most directly?
 passCondition: all
 options:
-  - id: focus
-    label: It helps the tester choose the most important coverage before spending effort on detailed steps
+  - id: option-1
+    label: Clarity about risks, contracts, and testability before late execution begins
     correct: true
-  - id: avoid-testing
-    label: It removes the need to test the feature later
+  - id: option-2
+    label: The number of UI tests run after release
     correct: false
-  - id: delay
-    label: It is mainly a way to delay execution until development is finished
+  - id: option-3
+    label: How quickly a tester can skip planning and start scripting
     correct: false
 ```
 
-Ask what matters most.
+## A Simple Example
 
-For checkout, the biggest risks might include:
+A simple way to make this workshop concrete is to imagine looking at a checkout feature, deciding which rules belong in UI coverage and which belong at API level, and then checking whether the product exposes enough evidence to support that plan. At first this may seem like a straightforward product task, but that simplicity is useful. It gives you a small, familiar surface to think with. The important question is not only whether the action succeeds. The important question is what you would want to know, what evidence you would keep, and which part of the system would be the clearest place to check it.
 
-- wrong prices
-- failed order creation
-- broken validation
-- missing confirmation
-- order not appearing in history
+As you walk through that example, try to describe the behavior in plain language before you think about tools. What should the user see? What data must exist for the journey to work? Which response from the API would give the browser enough information to render the right result? If the behavior went wrong, what would count as a meaningful symptom rather than a cosmetic difference? Questions like those are the bridge between exploration and automation. They help you decide what matters enough to be turned into a repeatable check.
 
-Once you can state those risks clearly, your planning becomes more focused and less mechanical.
+Once you have those answers, you can begin to see where different tools fit. A browser test may be the best place to prove that the user sees the right state. A Postman request may be the best place to confirm that a validation rule is enforced. A trace entry may be the clearest way to understand whether the browser problem began with a bad response or with an incorrect client assumption. The example becomes more powerful when you stop treating the tools as separate worlds and start using them to answer one shared testing question.
 
-## Part 3: Decide Which Level Fits Best
+## Working Through the Topic
 
-One of the most useful shift-left habits is deciding where a check belongs.
+Shift-left thinking becomes real when you ask questions early enough that the answers can still change the product. A late-stage test can tell you that a rule is broken. An early-stage planning conversation can reveal that the rule has not been expressed clearly enough to build or test reliably in the first place. In Testbed, you can see this most clearly in features like checkout totals, stock handling, and role-based access. Each one depends on assumptions about who can do what, which data is authoritative, and what the system should return when something goes wrong. Those assumptions should not be discovered only after implementation.
 
-Some things are best proved through the UI because the visible user experience matters. Other things are better checked through the API because they are simpler, faster, or closer to the real source of failure.
+A useful mental model is that shift-left work tries to remove avoidable ambiguity. If a feature team cannot explain which response codes a failure should use, which roles may access a route, or how the client should behave when the API returns partial data, testing will become reactive and expensive later. The tester who asks for that clarity early is not slowing the team down. They are making the feature cheaper to build, easier to observe, and easier to automate.
 
-For example:
+## How To Practise This Well
 
-- layout and user messages are naturally UI concerns
-- response shape and error codes are often better checked at API level
-- access rules may need both UI and API thinking
+Practise this workshop by taking one Testbed journey and pretending it is still being planned. Ask what you would want to know before implementation begins. Which fields are mandatory in the response? Which states are allowed? How should errors appear to the user? How would you seed the environment to reproduce the risky paths? When you ask those questions against a working app, you are effectively learning how to ask them earlier on real teams.
 
-Good planning is not about pushing everything into one tool. It is about choosing the right layer for the right question.
+The best shift-left habit to build is not just curiosity but translation. You need to turn vague worries into specific questions that a developer, designer, or product manager can answer. A comment like 'we should probably test this' is weak. A question like 'what should the UI do if order creation succeeds on the client but persistence fails on the server' is much stronger. That kind of question changes outcomes.
 
-## Part 4: Ask Better Testability Questions
+```quiz
+id: shiftleft-practice-check
+question: Which question is most aligned with shift-left thinking?
+passCondition: all
+options:
+  - id: option-1
+    label: What should the UI do if the API returns a partial failure response?
+    correct: true
+  - id: option-2
+    label: How many screenshots can we capture after launch?
+    correct: false
+  - id: option-3
+    label: Which random path should we automate first without planning?
+    correct: false
+```
 
-Shift-left testers do not only ask “How will I test this?”
+## Common Beginner Mistake
 
-They also ask:
+The most common beginner mistake in this area is treating shift-left as simply “testing sooner” instead of planning smarter and making quality concerns visible earlier. The problem with that habit is not only that it leads to weaker tests. It also makes learning slower. When you misread the purpose of the activity, every tool feels more confusing because you are asking it to solve the wrong problem.
 
-- how can I set this up quickly
-- how can I reset it
-- how will I know what failed
-- what stable data or hooks will I need
+A second version of the same mistake is moving too quickly. New automation engineers often want the comfort of immediate output, so they run to code, copy examples, or record a flow before they have decided what they are trying to prove. The result can look busy and productive while still leaving the important thinking undone. It is much better to pause, name the behavior, name the risk, and then choose the smallest technique that will give you confidence.
 
-Testbed is a good example of why that matters. The desktop app, presets, faults, and traces make testing easier because somebody thought about testability.
+When you notice yourself slipping into that pattern, a useful reset is to ask three questions in plain language. What am I trying to learn? What evidence would convince me? What is the simplest repeatable way to get that evidence? Those questions pull you back toward testing judgement and away from tool-driven confusion.
 
-That is exactly the kind of thinking you want to practise.
+## What Good Looks Like
 
-## Part 5: Write a Lightweight Test Approach
+In this workshop, good practice looks like using early conversations to clarify risks, contracts, ownership, and testability before expensive rework appears. It is usually calmer and more deliberate than beginners expect. You are not trying to cover everything at once. You are trying to choose the next most useful thing to understand, check, or improve.
 
-Before execution begins, try writing a short test approach instead of a long case list.
+When a tester is working well at this level, their notes and their automation choices start to align. The reason a check exists is clear. The setup supports the behavior being checked. The assertions reflect something meaningful. If the check fails, the failure tells a sensible story. That is the standard to aim for. Not cleverness, and not sheer quantity, but clarity that survives reruns, handovers, and future change.
 
-For a feature such as checkout, that approach might say:
-
-- cover the happy path through the UI
-- cover order creation failures through API-aware negative testing
-- verify pricing carefully because it is high business risk
-- use preset and fault controls to reproduce failure states
-
-This kind of short planning note is often more useful than a long spreadsheet of shallow cases.
+You should also expect good practice to involve communication. Automation is easier to maintain when the people around you can understand what a test is proving and why it matters. That is true whether you are talking to another tester, a developer, or a product manager. Clear reasoning makes your work easier to trust.
 
 ## Final Thought
 
-Shift-left planning makes your testing smarter before it makes it faster.
+The central lesson of this workshop is that how to think about risks, dependencies, contracts, and observability before a feature reaches late-stage testing is learnable when you break it into sensible questions and deliberate practice. You do not need to become an expert overnight. You do need to be patient enough to connect each new tool or technique back to a real testing purpose.
 
-The real benefit is not that you start earlier for the sake of it. The real benefit is that you spend your effort where it will actually protect the product.
+If you take that attitude into the rest of the workshop library, you will get more from Testbed. Use the environment to try things, to observe carefully, and to turn fuzzy instincts into clearer evidence. That is how manual testing experience grows into automation confidence without losing the judgement that made you effective in the first place.
+
+## Further Reading
+
+For further reading, spend time with articles on testability, contract testing, and risk-based planning, together with any internal refinement or grooming material your team already uses. Read slowly enough to connect the material back to what you just practised in Testbed. The goal is not to collect links. The goal is to compare different explanations until the ideas feel stable enough that you could explain them to another tester in your own words.
+
+If you are learning with teammates, an even better next step is to talk through one real example together. Pick a small product behavior, discuss where you would test it, and compare how each person would collect evidence. Conversations like that turn the workshop from private reading into practical team learning.
+
+```quiz
+id: shiftleft-final-check
+question: Why is identifying risks early such an important part of shift-left testing?
+passCondition: all
+options:
+  - id: option-1
+    label: It helps the team focus on what matters before detailed execution starts
+    correct: true
+  - id: option-2
+    label: It removes the need to test the feature later
+    correct: false
+  - id: option-3
+    label: It is mainly a way to delay writing any tests
+    correct: false
+```

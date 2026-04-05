@@ -6,6 +6,7 @@ const WORKSHOP_PROGRESS_KEY = 'workshop-progress'
 const WORKSHOP_READ_PARTS_KEY = 'workshop-read-parts'
 const WORKSHOP_QUIZ_PROGRESS_KEY = 'workshop-quiz-progress'
 const WORKSHOP_LAST_VIEW_KEY = 'workshop-last-view'
+const THEME_MODE_KEY = 'theme-mode'
 
 function safeRead<T>(key: string, fallback: T): T {
   const value = window.localStorage.getItem(key)
@@ -88,4 +89,12 @@ export function getStoredWorkshopLastView() {
 
 export function setStoredWorkshopLastView(value: { workshopSlug: string; partSlug: string }) {
   safeWrite(WORKSHOP_LAST_VIEW_KEY, value)
+}
+
+export function getStoredThemeMode() {
+  return safeRead<'light' | 'dark'>(THEME_MODE_KEY, 'light')
+}
+
+export function setStoredThemeMode(value: 'light' | 'dark') {
+  safeWrite(THEME_MODE_KEY, value)
 }

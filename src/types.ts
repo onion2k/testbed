@@ -189,4 +189,5 @@ export interface DesktopContext {
   port: number | null
   usedFallbackPort: boolean
   dataDirectory: string | null
+  adminApiToken: string | null
 }

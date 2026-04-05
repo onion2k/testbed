@@ -240,11 +240,24 @@ function createPostmanCollection(serverUrl, registry) {
       folders.set(route.group, [])
     }
 
+    const requestHeaders = route.group === 'Admin'
+      ? [
+          {
+            key: 'Authorization',
+            value: 'Bearer {{adminApiToken}}',
+          },
+        ]
+      : []
+
     folders.get(route.group).push({
       name: `${route.method} ${route.pathTemplate}`,
       request: {
         method: route.method,
-        header: [],
+        header: requestHeaders,
+        description:
+          route.group === 'Admin'
+            ? 'This admin route requires Authorization: Bearer {{adminApiToken}}.'
+            : undefined,
         url: {
           raw: `{{baseUrl}}${route.pathTemplate}`,
           host: ['{{baseUrl}}'],
@@ -334,6 +347,49 @@ function createPostmanCollection(serverUrl, registry) {
     },
   ])
 
+  folders.set('Admin Auth Examples', [
+    {
+      name: 'GET /api/admin/overview with token',
+      request: {
+        method: 'GET',
+        header: [
+          {
+            key: 'Authorization',
+            value: 'Bearer {{adminApiToken}}',
+          },
+        ],
+        description: 'Expected to succeed when the admin Bearer token is present.',
+        url: {
+          raw: '{{baseUrl}}/api/admin/overview',
+          host: ['{{baseUrl}}'],
+          path: ['api', 'admin', 'overview'],
+        },
+      },
+      response: [],
+    },
+    {
+      name: 'GET /api/admin/overview without token',
+      request: {
+        method: 'GET',
+        header: [],
+        description: 'Expected to return 401 because the admin Bearer token is missing.',
+        url: {
+          raw: '{{baseUrl}}/api/admin/overview',
+          host: ['{{baseUrl}}'],
+          path: ['api', 'admin', 'overview'],
+        },
+      },
+      response: [
+        {
+          name: 'Unauthorized response',
+          status: 'Unauthorized',
+          code: 401,
+          body: JSON.stringify({ error: 'Admin API token is required for this route.' }, null, 2),
+        },
+      ],
+    },
+  ])
+
   return {
     info: {
       name: 'Testbed Local API',
@@ -350,7 +406,7 @@ function createPostmanCollection(serverUrl, registry) {
   }
 }
 
-function createPostmanEnvironment(serverUrl, store) {
+function createPostmanEnvironment(serverUrl, store, adminApiToken) {
   const users = store.readUsers()
   const userByRole = Object.fromEntries(users.map((user) => [user.role, user]))
 
@@ -358,6 +414,7 @@ function createPostmanEnvironment(serverUrl, store) {
     name: 'Testbed Local Environment',
     values: [
       { key: 'baseUrl', value: serverUrl, enabled: true },
+      { key: 'adminApiToken', value: adminApiToken, enabled: true },
       { key: 'customerUsername', value: userByRole.customer?.username ?? '', enabled: true },
       { key: 'customerPassword', value: userByRole.customer?.password ?? '', enabled: true },
       { key: 'vipUsername', value: userByRole.vip?.username ?? '', enabled: true },
@@ -412,6 +469,13 @@ function mutatePayloadForFault(endpointKey, payload, mode) {
   return payload
 }
 
+function getBearerToken(req) {
+  const header = req.headers.authorization
+  if (typeof header !== 'string') return null
+  const match = header.match(/^Bearer\s+(.+)$/i)
+  return match ? match[1].trim() : null
+}
+
 export async function startTestbedServer({
   dataDirectory,
   preferredPort = 5175,
@@ -422,6 +486,7 @@ export async function startTestbedServer({
   const registry = createRouteRegistry()
   const lastKnownGood = new Map()
   let traces = []
+  const adminApiToken = `testbed-admin-${randomUUID()}`
 
   const vite = dev
     ? await createViteServer({
@@ -459,6 +524,17 @@ export async function startTestbedServer({
         })
       },
     }
+  }
+
+  function ensureAdminAuthorization(req, res) {
+    if (getBearerToken(req) === adminApiToken) {
+      return true
+    }
+
+    json(res, 401, {
+      error: 'Admin API token is required for this route.',
+    })
+    return false
   }
 
   async function handleRegisteredRoute(req, res, pathname, routeMatch, rawBody) {
@@ -689,6 +765,9 @@ export async function startTestbedServer({
       }
 
       if (pathname === '/api/admin/break-modes' && req.method === 'POST') {
+        if (!ensureAdminAuthorization(req, res)) {
+          return
+        }
         const body = parseJsonBody(await readRawBody(req))
         json(res, 200, { breakModes: store.writeBreakModes(body.breakModes ?? store.readBreakModes()) })
         return
@@ -739,12 +818,15 @@ export async function startTestbedServer({
       }
 
       if (pathname === '/api/postman/environment' && req.method === 'GET') {
-        json(res, 200, createPostmanEnvironment(`http://127.0.0.1:${currentPort}`, store))
+        json(res, 200, createPostmanEnvironment(`http://127.0.0.1:${currentPort}`, store, adminApiToken))
         return
       }
 
       const routeMatch = findRoute(registry, req.method ?? 'GET', pathname)
       if (routeMatch) {
+        if (pathname.startsWith('/api/admin/') && !ensureAdminAuthorization(req, res)) {
+          return
+        }
         const rawBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method ?? '') ? await readRawBody(req) : ''
         await handleRegisteredRoute(req, res, pathname, routeMatch, rawBody)
         return
@@ -811,6 +893,7 @@ export async function startTestbedServer({
     port: currentPort,
     serverUrl: `http://127.0.0.1:${currentPort}`,
     usedFallbackPort,
+    adminApiToken,
     async close() {
       await new Promise((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()))

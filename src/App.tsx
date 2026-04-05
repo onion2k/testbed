@@ -50,6 +50,7 @@ import {
   getStoredWorkshopQuizProgress,
   getStoredWorkshopReadParts,
   getStoredWorkshopProgress,
+  getStoredThemeMode,
   resetDemoState,
   resetWorkshopProgress,
   setStoredCart,
@@ -57,6 +58,7 @@ import {
   setStoredWorkshopQuizProgress,
   setStoredWorkshopReadParts,
   setStoredWorkshopProgress,
+  setStoredThemeMode,
 } from './lib/storage'
 import { defaultWorkshopSlug, workshopEntries } from './lib/workshops'
 import type {
@@ -107,6 +109,19 @@ function calculateCheckoutTotals(subtotal: number, hasBrokenCheckoutTotal: boole
     shipping,
     total,
   }
+}
+
+function shuffleItems<T>(items: T[]) {
+  const next = [...items]
+
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    const current = next[index]
+    next[index] = next[swapIndex]
+    next[swapIndex] = current
+  }
+
+  return next
 }
 
 function renderInlineMarkdown(text: string) {
@@ -470,10 +485,35 @@ function arePresetValuesModified(config: TestControlsConfig | null, presets: Sce
 
 const isDesktop = Boolean(window.desktopBridge?.isDesktop)
 
+type ThemeMode = 'light' | 'dark'
+
+function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => void }) {
+  const isDark = theme === 'dark'
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      onClick={onToggle}
+      className="inline-flex items-center gap-3 rounded-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-stone-100"
+    >
+      <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{isDark ? 'Dark' : 'Light'}</span>
+      <span className={`relative h-6 w-11 rounded-full transition ${isDark ? 'bg-slate-900' : 'bg-stone-300'}`}>
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-5' : 'translate-x-0.5'}`}
+        />
+      </span>
+    </button>
+  )
+}
+
 function AppShell() {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [, setRuntimeVersion] = useState(0)
+  const [theme, setTheme] = useState<ThemeMode>(() => getStoredThemeMode())
   const navLinks = [
     ['/', 'Home'],
     ['/shop', 'Shop'],
@@ -481,6 +521,12 @@ function AppShell() {
     ['/orders', 'Orders'],
     ['/login', user ? 'Switch user' : 'Login'],
   ]
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-dark', theme === 'dark')
+    document.documentElement.dataset.theme = theme
+    setStoredThemeMode(theme)
+  }, [theme])
 
   useEffect(() => {
     let cancelled = false
@@ -527,10 +573,10 @@ function AppShell() {
 
   if (isDesktop && location.pathname === '/desktop') {
     return (
-      <div className="min-h-screen bg-stone-100 text-slate-900">
-        <main className="w-full px-6 py-8">
+      <div className="h-screen overflow-hidden bg-stone-100 text-slate-900">
+        <main className="flex h-full min-h-0 w-full p-6">
           <Routes>
-            <Route path="/desktop" element={<DesktopRoute />} />
+            <Route path="/desktop" element={<DesktopRoute theme={theme} onToggleTheme={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))} />} />
             <Route path="*" element={<Navigate to="/desktop" replace />} />
           </Routes>
         </main>
@@ -566,6 +612,7 @@ function AppShell() {
                 {label}
               </Link>
             ))}
+            <ThemeToggle theme={theme} onToggle={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))} />
           </nav>
           <div className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm">
             {user ? (
@@ -1499,15 +1546,15 @@ function AdminUnavailablePage() {
   )
 }
 
-function DesktopRoute() {
+function DesktopRoute({ theme = 'light', onToggleTheme = () => {} }: { theme?: ThemeMode; onToggleTheme?: () => void }) {
   if (!isDesktop) {
     return <AdminUnavailablePage />
   }
 
-  return <DesktopAdminPage />
+  return <DesktopAdminPage theme={theme} onToggleTheme={onToggleTheme} />
 }
 
-function DesktopAdminPage() {
+function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggleTheme: () => void }) {
   const initialWorkshopLastView = getStoredWorkshopLastView()
   const [tab, setTab] = useState<
     'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'data-folder' | 'server'
@@ -1554,6 +1601,10 @@ function DesktopAdminPage() {
     selectedWorkshop && selectedWorkshopPart?.quiz
       ? `${selectedWorkshop.slug}:${selectedWorkshopPart.slug}:${selectedWorkshopPart.quiz.id}`
       : null
+  const shuffledSelectedWorkshopQuizOptions = useMemo(() => {
+    if (!selectedWorkshopPart?.quiz) return []
+    return shuffleItems(selectedWorkshopPart.quiz.options)
+  }, [selectedWorkshopQuizKey, selectedWorkshopPart?.quiz])
   const isSelectedWorkshopPartRead = selectedWorkshopPartKey ? Boolean(readWorkshopParts[selectedWorkshopPartKey]) : false
   const isSelectedWorkshopQuizPassed =
     !selectedWorkshopPart?.quiz || (selectedWorkshopQuizKey ? Boolean(workshopQuizProgress[selectedWorkshopQuizKey]) : false)
@@ -2016,17 +2067,15 @@ function DesktopAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 w-full flex-col gap-6 overflow-hidden">
       <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Testbed Admin</h1>
-            <p className="mt-2 text-slate-600">Manage runtime JSON state, localhost server settings, and QA test data without using the CLI.</p>
+            <h1 className="text-3xl font-semibold">Testbed</h1>
+            <p className="mt-2 text-slate-600">Learn QA testing and test automation.</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => void loadDesktopData()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
-              Refresh data
-            </button>
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             {context?.serverUrl ? (
               <a href={context.serverUrl} target="_blank" rel="noreferrer" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
                 Open web app
@@ -2037,30 +2086,44 @@ function DesktopAdminPage() {
         {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
       </section>
 
-      <div className="flex flex-wrap gap-2">
-        {[
-          ['workshops', 'Workshops'],
-          ['dashboard', 'Dashboard'],
-          ['catalog', 'Products & Orders'],
-          ['users', 'Users'],
-          ['break-modes', 'Break Modes'],
-          ['scenarios', 'Scenarios & Faults'],
-          ['tracing', 'Tracing'],
-          ['postman', 'Postman'],
-          ['data-folder', 'Data Folder'],
-          ['server', 'Server'],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setTab(value as typeof tab)}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {([['workshops', 'Workshops']] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTab(value)}
+              className={`rounded-full px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          {([
+            ['dashboard', 'Dashboard'],
+            ['catalog', 'Products & Orders'],
+            ['users', 'Users'],
+            ['break-modes', 'Break Modes'],
+            ['scenarios', 'Scenarios & Faults'],
+            ['tracing', 'Tracing'],
+            ['postman', 'Postman'],
+            ['data-folder', 'Data Folder'],
+            ['server', 'Server'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTab(value)}
+              className={`rounded-full px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      <div className={`min-h-0 flex-1 ${tab === 'workshops' ? 'overflow-hidden' : 'overflow-y-auto pr-1'}`}>
       {tab === 'dashboard' ? (
         <div className="grid gap-4 xl:grid-cols-2">
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
@@ -2507,6 +2570,31 @@ function DesktopAdminPage() {
         <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-semibold">Postman Assets</h2>
           <p className="mt-2 text-slate-600">Download generated collection and environment files based on the running local server.</p>
+          <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Bearer Token</p>
+            <p className="mt-3 text-sm text-slate-600">Use this value as a Bearer token in Postman when you call any <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[0.95em] text-slate-800">/api/admin/*</code> route.</p>
+            <p className="mt-3 rounded-2xl border border-stone-200 bg-white p-3 font-mono text-sm text-slate-900">
+              {context?.adminApiToken ?? 'Unavailable'}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void navigator.clipboard.writeText(context?.adminApiToken ?? '')}
+                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+                disabled={!context?.adminApiToken}
+              >
+                Copy token
+              </button>
+              <button
+                type="button"
+                onClick={() => void navigator.clipboard.writeText(`Bearer ${context?.adminApiToken ?? ''}`)}
+                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+                disabled={!context?.adminApiToken}
+              >
+                Copy Bearer header value
+              </button>
+            </div>
+          </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <button type="button" onClick={() => void handleDownloadCollection()} className="btn-primary rounded-[1.5rem] bg-slate-900 px-5 py-4 text-left font-medium text-white">
               Download Collection
@@ -2526,7 +2614,7 @@ function DesktopAdminPage() {
       ) : null}
 
       {tab === 'workshops' && selectedWorkshop && selectedWorkshopPart ? (
-        <div className="grid gap-6 xl:h-[calc(100vh-15rem)] xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="grid h-full min-h-0 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
             <div className="shrink-0">
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Workshop Library</p>
@@ -2634,7 +2722,7 @@ function DesktopAdminPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedWorkshopPartSlug(selectedWorkshop.parts[Math.max(selectedWorkshopPartIndex - 1, 0)]?.slug ?? selectedWorkshopPart.slug)}
-                    className="w-full rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-full border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-stone-200 disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-slate-500 disabled:shadow-none"
                     disabled={selectedWorkshopPartIndex <= 0}
                   >
                     Previous Part
@@ -2646,7 +2734,7 @@ function DesktopAdminPage() {
                         selectedWorkshop.parts[Math.min(selectedWorkshopPartIndex + 1, selectedWorkshop.parts.length - 1)]?.slug ?? selectedWorkshopPart.slug,
                       )
                     }
-                    className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-300"
+                    className="w-full rounded-full border border-slate-950 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
                     disabled={
                       selectedWorkshopPartIndex >= selectedWorkshop.parts.length - 1 ||
                       selectedWorkshopPartIndex + 1 > effectiveUnlockedWorkshopPartIndex
@@ -2672,7 +2760,7 @@ function DesktopAdminPage() {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Knowledge Check</p>
                   <h3 className="mt-3 text-xl font-semibold text-slate-900">{quiz.question}</h3>
                   <div className="mt-4 space-y-3">
-                    {quiz.options.map((option) => (
+                    {shuffledSelectedWorkshopQuizOptions.map((option) => (
                       <label key={option.id} className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-slate-700">
                         <input
                           type="radio"
@@ -2700,7 +2788,7 @@ function DesktopAdminPage() {
                     <button
                       type="button"
                       onClick={handleQuizSubmit}
-                      className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-300"
+                      className="rounded-full border border-slate-950 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
                       disabled={isSelectedWorkshopQuizPassed}
                     >
                       {isSelectedWorkshopQuizPassed ? 'Quiz Passed' : 'Check Answer'}
@@ -2728,6 +2816,9 @@ function DesktopAdminPage() {
               {context?.dataDirectory ?? 'No folder selected'}
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" onClick={() => void loadDesktopData()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                Refresh data
+              </button>
               <button type="button" onClick={() => void handleSelectDataDirectory()} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
                 Choose folder
               </button>
@@ -2784,6 +2875,7 @@ function DesktopAdminPage() {
           </div>
         </section>
       ) : null}
+      </div>
     </div>
   )
 }
