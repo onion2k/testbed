@@ -1,135 +1,71 @@
 # Regression Strategy Workshop
 
-This workshop teaches testers how to choose what belongs in a regression pack instead of trying to rerun everything.
+This workshop is about deciding what should be checked regularly and how deep that checking needs to be.
 
-It uses Testbed to practise:
+A good regression strategy is not just a very long list of tests. It is a deliberate choice about where confidence should come from.
 
-- choosing smoke coverage
-- choosing critical-path coverage
-- choosing deeper regression coverage
-- balancing risk, speed, and maintenance
+## Why Strategy Matters
 
-## Learning Goals
+If everything is treated as equally important, teams often end up with slow suites, weak priorities, and confusing results.
 
-By the end of this workshop, you should be able to:
+A better approach is to separate:
 
-- explain the difference between smoke and regression coverage
-- identify critical-path scenarios
-- decide what should always run versus what should run less often
-- avoid bloated regression packs
-- justify your regression choices clearly
+- the checks that must run often
+- the checks that protect the most important flows
+- the checks that go deeper but less frequently
 
-## Part 1: Not Everything Belongs in Smoke
+This helps you match effort to value.
 
-Smoke tests answer:
+## Think in Layers
 
-- is the system alive
-- are the most critical journeys still working
+In practical terms, many teams need some combination of:
 
-Regression tests answer:
-
-- did existing behavior break in important ways
-
-A smoke pack should be small.
-
-A regression pack should be intentional.
-
-## Part 2: Identify Critical Paths
-
-In Testbed, critical paths include:
-
-- login
-- shop access
-- add to basket
-- checkout completion
-- order history visibility
-
-These are strong smoke candidates.
-
-### Workshop exercise
-
-Choose five scenarios that you would put in smoke and explain why.
-
-## Part 3: Identify Important but Non-Smoke Coverage
-
-Examples:
-
-- empty product list handling
-- invalid order behavior
-- malformed payload resilience
-- VIP access rules
-- admin visibility and tracing tools
-
-These may belong in deeper regression or targeted suites, not smoke.
-
-### Workshop exercise
-
-Classify scenarios as:
-
-- smoke
+- smoke coverage
 - core regression
-- targeted regression
-- exploratory only
+- targeted deeper checks
 
-## Part 4: Balance Speed and Value
+That structure helps you answer a useful question:
 
-A weak regression pack:
+What do we need to know quickly, and what do we need to know eventually?
 
-- is large
-- slow
-- repetitive
-- hard to trust
+## What This Looks Like in Testbed
 
-A stronger regression strategy:
+In Testbed, you can imagine a small smoke layer for things like login and core navigation, a stronger regression layer for flows such as basket and checkout, and deeper targeted checks for failures, malformed data, or scenario-driven edge cases.
 
-- protects the highest risks
-- keeps feedback fast where needed
-- moves lower-value checks to lower levels or exploratory work
+Thinking in layers helps you decide which checks should run often and which ones are better suited to deeper, less frequent coverage.
 
-### Workshop exercise
+## A Simple Example
 
-Take ten candidate scenarios and cut them down to:
+A simple regression strategy might say:
 
-- 3 smoke
-- 5 core regression
-- 2 exploratory only
+- run a quick login check often
+- run a checkout happy path regularly
+- keep deeper negative-path flows in a slower layer
 
-## Part 5: Use Risk and Change Impact
+That is not about reducing quality. It is about choosing a sensible structure for confidence.
 
-Good regression choices come from:
+## Common Beginner Mistake
 
-- business criticality
-- technical fragility
-- recent change impact
-- defect history
+A common mistake is to treat regression as one very large undifferentiated group of tests.
 
-### Example
+That often leads to slow suites, unclear priorities, and difficulty explaining what a passing or failing run really means.
 
-If checkout code changed recently, checkout coverage should be prioritized.
+## What Good Looks Like
 
-If only admin diagnostics changed, not every shop-path UI test needs to run more often.
+Good regression strategy makes it clear:
 
-## Part 6: Build a Simple Regression Matrix
+- what is being protected most often
+- what is being checked more deeply
+- what kind of confidence each layer is supposed to provide
 
-Use this structure:
+## Final Thought
 
-| Scenario | Value | Frequency | Level |
-|---|---|---|---|
-| Login happy path | high | every run | UI + API |
-| Checkout happy path | high | every run | UI |
-| Orders API 422 | high | daily or pre-release | UI + API |
-| Malformed products payload | medium | daily or targeted | UI + API |
-| Admin slow response | medium | targeted | UI |
+Regression strategy is really about confidence design.
 
-## Part 7: Practice Challenges
+It helps you decide where your automation effort should go and what kind of safety each layer is supposed to provide.
 
-1. Create a smoke pack for Testbed.
-2. Create a core regression pack.
-3. Identify what should be API-only instead of UI regression.
+## Further Reading
 
-## Part 8: Final Takeaway
-
-Regression strategy is about confidence per minute.
-
-The goal is not to rerun everything.
-The goal is to protect the most important behavior with the right depth and cadence.
+- Material on smoke, regression, and critical-path coverage
+- Team guidance on suite organisation if available
+- Articles on balancing speed and confidence in automation suites

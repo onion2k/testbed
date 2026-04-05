@@ -1,123 +1,62 @@
 # Risk-Based Testing Workshop
 
-This workshop teaches testers how to prioritize testing based on impact and likelihood instead of treating every area as equally important.
+This workshop is about prioritisation.
 
-It uses Testbed to practise:
+Not every part of a product carries the same risk, and not every test deserves the same amount of effort. Risk-based testing helps you decide where deeper attention will create the most value.
 
-- identifying business and technical risks
-- ranking features by importance
-- deciding where deeper testing effort belongs
+## What Risk Means Here
 
-## Learning Goals
+In testing, risk usually combines ideas such as:
 
-By the end of this workshop, you should be able to:
+- how bad the impact would be
+- how likely the problem is
+- how much has changed
+- how visible the failure would be
 
-- explain what risk-based testing is
-- identify impact and likelihood for a feature
-- rank areas by testing priority
-- justify coverage decisions clearly
+That gives you a more useful basis for planning than simply treating every screen or feature as equal.
 
-## Part 1: What Risk Means
+## Why This Helps Manual Testers Moving Into Automation
 
-In testing, risk is usually a combination of:
+Automation time is limited.
 
-- impact if something fails
-- likelihood of failure
+If you spend the same amount of effort everywhere, you often end up protecting low-value areas while leaving high-value areas relatively weak. Risk thinking helps you avoid that.
 
-High-impact examples in Testbed:
+## What This Looks Like in Testbed
 
-- wrong checkout total
-- order not created
-- access control failure
+In Testbed, some journeys naturally carry more weight than others. Checkout, login, and order history usually matter more than a minor content variation because the user and business impact is higher if they fail.
 
-Lower-impact examples:
+That does not mean the lighter areas do not matter. It means you should think more carefully about where deeper coverage will create the most value.
 
-- minor content wording changes
-- non-critical styling differences
+## A Simple Example
 
-## Part 2: Score Risks
+Imagine you have limited time to add automation.
 
-Use a simple scale:
-
-- impact: low, medium, high
-- likelihood: low, medium, high
-
-Then combine them into a priority.
-
-### Workshop exercise
-
-Score these areas:
+A risk-based approach would usually favour:
 
 - login
-- shop
-- checkout
-- orders
-- VIP access
-- admin tooling
+- basket and checkout
+- order creation and order visibility
 
-Explain why each received its score.
+before spending the same effort on a less critical area. That is not because the smaller area should never be tested. It is because the consequence of failure is not the same.
 
-## Part 3: Translate Risk into Coverage
+## Common Beginner Mistake
 
-Higher-risk areas deserve:
+A common mistake is to assume fairness means giving every feature equal effort.
 
-- earlier testing
-- deeper testing
-- more stable automation
-- stronger negative-path coverage
+In testing, equal effort is not always the most useful choice. The more important question is where failure would hurt most and where change is most likely to introduce problems.
 
-Lower-risk areas may deserve:
+## What Good Looks Like
 
-- lighter regression
-- exploratory testing
-- visual review only
+Good risk-based thinking means the tester can explain why some areas deserve deeper attention and why others can justifiably be lighter. That explanation is an important professional skill in its own right.
 
-### Workshop exercise
+## Final Thought
 
-For each high-risk area, choose:
+Risk-based testing is not about ignoring parts of the product.
 
-- one UI check
-- one API check
-- one negative scenario
+It is about choosing where to go deep, where to go lighter, and how to explain those decisions clearly.
 
-## Part 4: Use Scenarios to Explore Risk
+## Further Reading
 
-Presets and faults help you test risk directly.
-
-Examples:
-
-- `orders-api-422` for checkout resilience
-- `auth-expired` for access risk
-- `schema-corruption-products` for catalog resilience
-
-### Workshop exercise
-
-Pick one high-risk area and choose which scenario best exposes its weakness.
-
-## Part 5: Communicate Risk Clearly
-
-Risk-based testers should be able to explain:
-
-- what matters most
-- what was tested deeply
-- what was tested lightly
-- what remains as residual risk
-
-### Example summary
-
-- checkout tested deeply due to financial and business impact
-- product content variations tested lightly because impact is lower
-- malformed payload handling covered because backend contract failures would affect multiple journeys
-
-## Part 6: Practice Challenges
-
-1. Build a risk-ranked feature list for Testbed.
-2. Design a high-risk regression pack.
-3. Explain what you would not prioritise and why.
-
-## Part 7: Final Takeaway
-
-Risk-based testing is about using effort deliberately.
-
-Not every feature deserves the same level of attention.
-Strong testers can explain where they spent effort and why.
+- Material on impact and likelihood in test planning
+- Team risk registers or release notes if available
+- Articles on risk-based coverage design

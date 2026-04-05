@@ -1,169 +1,75 @@
 # Selectors and Testability Workshop
 
-This workshop teaches testers how to choose stronger selectors and how to think about testability before writing automation.
+This workshop is about one of the most practical parts of browser automation: how you choose elements and how easy the product is to test in the first place.
 
-It uses Testbed to practise:
+Selectors may seem like a technical detail at first, but they have a huge effect on whether your automation becomes reliable or frustrating.
 
-- choosing robust Playwright locators
-- identifying brittle locator patterns
-- understanding what makes a UI testable
-- asking for better hooks when needed
+## Why Selectors Matter So Much
 
-## Learning Goals
+When a selector is weak, the test becomes brittle. Small UI changes can break it even when the real user behavior has not changed.
 
-By the end of this workshop, you should be able to:
+When a selector is strong, the test becomes easier to read, easier to review, and easier to trust.
 
-- explain why some selectors are brittle
-- prefer roles, labels, and `data-testid` where appropriate
-- recognise when text-based selection is too fragile
-- describe what “good testability” looks like
-- ask for better automation hooks in a useful way
+That is why selector choice is not just a coding decision. It is a test design decision.
 
-## Part 1: What Makes a Selector Good
+## What Strong Selectors Usually Look Like
 
-A good selector is:
-
-- stable
-- meaningful
-- readable
-- independent of layout details
-
-A bad selector often depends on:
-
-- visual order
-- generic CSS chains
-- changing marketing copy
-- unrelated surrounding markup
-
-## Part 2: Locator Preference Order
-
-In this app, a practical preference order is:
-
-1. accessible role and name
-2. label-based locators
-3. `data-testid`
-4. text-only locators when the text is genuinely stable
-5. CSS selectors only when necessary
-
-### Workshop exercise
-
-Compare these:
-
-- `page.locator('.card button')`
-- `page.getByText('Shop now')`
-- `page.getByRole('button', { name: 'Shop now' })`
-- `page.getByTestId('login-submit')`
-
-Explain when each is acceptable and when it is risky.
-
-## Part 3: Use What Testbed Already Exposes
-
-Testbed intentionally provides:
+In Testbed, the best starting points are usually:
 
 - roles
 - labels
-- `data-testid`
+- stable `data-testid` values
 
-That means you should not default to brittle CSS selectors.
+These are usually better than brittle CSS chains or element-order guesses because they are closer to how a user understands the page.
 
-### Workshop exercise
+For a manual tester moving into automation, this is an important insight. The best locator is often the one that is most meaningful, not the one that is most technically clever.
 
-Find stable locators for:
+## Testability Is Bigger Than Selectors
 
-- login username
-- login password
-- login submit
-- add to cart
-- basket checkout link
-
-Write both:
-
-- a weak locator
-- a stronger replacement
-
-## Part 4: Text Can Be Useful, But Be Careful
-
-Visible text can be useful when:
-
-- it is part of the product requirement
-- it is stable
-- the meaning is central
-
-Visible text is risky when:
-
-- content can change under content-change scenarios
-- marketing copy is expected to evolve
-- localisation is possible later
-
-### Workshop exercise
-
-Use a content-change scenario and identify which text-based selectors would become fragile.
-
-This teaches an important lesson:
-
-not all human-readable text is a good automation handle.
-
-## Part 5: Testability Is More Than Selectors
-
-A feature is more testable when it has:
+Good testability also includes:
 
 - reliable setup
-- stable state reset
-- observable responses
-- meaningful locators
-- known data
-- reproducible failures
+- stable data
+- clear reset paths
+- observable failures
 
-Testbed already helps with:
+That is why Testbed includes presets, reset controls, and fault injection. Those things make the product easier to test, not just easier to demonstrate.
 
-- presets
-- fault injection
-- trace viewer
-- generated API assets
+## What This Looks Like in Testbed
 
-### Workshop exercise
+In Testbed, you can compare different ways of finding the same element. A login button may be reachable through visible text, through its role, or through a stable test ID. Some of those approaches will survive change better than others.
 
-Choose one feature and answer:
+That comparison is useful because it shows that locator choice is not random. It is a quality decision.
 
-- what makes it testable now
-- what would make it hard to test if those controls were missing
+## A Simple Example
 
-## Part 6: Ask for Better Hooks the Right Way
+Imagine you need to find the login submit button.
 
-When you need better testability, avoid vague requests like:
+A fragile approach might depend on a CSS chain or a piece of copy that could change. A stronger approach would use a role, a label, or a known test ID. The stronger choice is usually easier for another tester to understand later too.
 
-- “Can you make this easier to test?”
+## Common Beginner Mistake
 
-Ask specifically:
+A common mistake is to choose the first locator that works and stop thinking there.
 
-- can this button have a stable accessible name
-- can this control expose a unique `data-testid`
-- can this state be seeded without UI setup
-- can this failure be reproduced through a control API
+That often creates tests that pass now but break the next time the layout or copy changes. A better question is: will this locator still make sense after a normal UI change?
 
-### Workshop exercise
+## What Good Looks Like
 
-Write three example requests to developers that improve testability without dictating implementation unnecessarily.
+Good selector choices are usually:
 
-## Part 7: Selector Review Checklist
+- meaningful
+- stable
+- readable
+- connected to the way the page is understood by users
 
-Before keeping a locator, ask:
+## Final Thought
 
-- will this survive layout changes
-- will this survive text changes
-- is it tied to user meaning
-- can another tester understand it quickly
-- is there a better accessibility-based option
+If a tester struggles to locate something in a meaningful and stable way, that is often a signal about the product as well as the test.
 
-## Part 8: Practice Challenges
+Good selectors and good testability usually improve together.
 
-1. Refactor a Codegen flow to use better selectors.
-2. Identify which locators would break under content-change conditions.
-3. Propose one testability improvement for a difficult part of the UI.
+## Further Reading
 
-## Part 9: Final Takeaway
-
-Good selectors are a test design choice, not a technical afterthought.
-
-Good testability is a product quality attribute.
-If you think about both early, your automation gets simpler and more reliable.
+- Playwright locator documentation
+- Accessibility guidance on names, roles, and labels
+- Team conventions for test IDs and automation hooks

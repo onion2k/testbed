@@ -1,134 +1,81 @@
 # Introduction to Testbed
 
-This workshop is the starting point for anyone opening Testbed for the first time.
+Welcome to Testbed.
 
-It explains:
+This workshop is the best place to begin if you are opening the app for the first time and you want to understand what it is for.
 
-- what Testbed is for
-- how the browser app, desktop app, and APIs fit together
-- how workshops are meant to be used
-- how to move from learning to practice
+Testbed is not just a website. It is a practice environment designed to help manual QA testers move into automation step by step. It gives you a product to test, a desktop app to control the state of that product, and a local API that you can inspect directly. That combination makes it a safe place to practise skills that are often difficult to learn on a real production system.
 
-## What Testbed Is
+## What You Are Looking At
 
-Testbed is a practice environment for testers.
+When people first open Testbed, they sometimes wonder which part is the “real app”. The answer is simple:
 
-It is designed to help manual QA testers learn automation and stronger testing habits by giving them:
+The browser app is the thing you test.
 
-- a website to test
-- APIs to inspect directly
-- a desktop admin shell to control state and failures
-- guided workshops inside the desktop app
+The desktop app is the control panel you use to make testing easier. It lets you change data, apply known scenarios, inject failures, and read the workshops.
 
-You are not here to test the workshop system itself.
-You are here to use Testbed as a place to learn testing.
+The API is the service layer underneath the browser app. It gives you another way to understand what is happening and another place to write checks.
 
-## The Three Main Surfaces
+That means Testbed helps you practise three connected ways of thinking:
 
-Testbed has three main surfaces:
+- user-focused testing through the website
+- system-focused testing through the API
+- controlled setup through the desktop shell
 
-1. Browser app
-   This is the product under test.
-2. Desktop app
-   This is the control panel for scenarios, faults, traces, and workshops.
-3. Local API
-   This is the service layer you can inspect with Postman and automation.
+## Why This Matters for Manual Testers
 
-The browser app is where user journeys happen.
-The desktop app helps you create known conditions for those journeys.
-The API helps you test behavior more directly and earlier.
+If you are coming from a manual QA background, you already have useful instincts. You know how to explore a flow, notice odd behavior, compare expected and actual results, and describe issues clearly. Automation does not replace those skills. It builds on them.
 
-## What You Can Practise
+The goal of these workshops is not to turn you into a framework specialist overnight. The goal is to help you become more confident in turning good testing ideas into repeatable checks.
 
-Inside Testbed, you can practise:
+That is why Testbed exists.
 
-- manual exploratory testing
-- test case design
-- risk-based planning
-- Playwright end-to-end automation
-- Postman API testing
-- shift-left thinking
-- bug investigation
-- negative testing
-- regression strategy
+## How to Use Testbed Well
 
-The workshops are there to guide that progression.
+The most effective way to use Testbed is to stay curious and work in small steps.
 
-## How To Use The Workshops
+Read a workshop section, then try the related action in the app. If the workshop mentions login, log in. If it mentions a preset, apply it. If it talks about a failing API, open the trace view and look at the request. The more you connect the written guidance to something real in the app, the more useful the learning becomes.
 
-The workshop library is intended to be used in order when you are new.
+Treat Testbed like a lab, not like a book.
 
-A sensible path is:
+## A Suggested First Session
 
-1. Introduction to Testbed
-2. Manual QA to Automation Workshop
-3. Shift-Left Test Planning Workshop
-4. Bug Investigation Workshop
-5. Negative Testing Workshop
+For your first session, keep it simple.
 
-After that, move into the more specialized workshops based on what you want to learn next.
+Open the browser app and sign in as the customer user. Browse the shop, add one item to the basket, and open the checkout journey. Then open the desktop app and look at the workshop list, the scenarios, and the tracing tab. You do not need to understand everything immediately. The point is to get comfortable with the shape of the environment.
 
-## How Progress Works
+By the end of that short session, you should understand:
 
-Workshop progress is tracked locally in the desktop app.
+- where the user journeys live
+- where the test controls live
+- how the browser behavior and API behavior connect
 
-That includes:
+## How Workshop Progress Works
 
-- which workshop you last opened
-- which section you last viewed
-- which sections you have read
-- which quiz gates you have passed
+The workshop reader remembers where you were. That means the app can reopen your last workshop and your last section. It also tracks which sections you have already read and, where used, which quiz gates you have passed.
 
-If you clear workshop progress in the `Data Folder` tab, you restart the workshop journey from the beginning.
+This is there to support steady learning rather than speed-reading.
 
-## Suggested First Practice Session
+If you ever want to start again from the beginning, you can clear workshop progress from the desktop app.
 
-For your first session:
+## Your Best Next Step
 
-1. Open the browser app.
-2. Log in as the customer user.
-3. Browse the shop.
-4. Add one product to the basket.
-5. Open the desktop app.
-6. Find the `Scenarios & Faults` tab.
-7. Apply `baseline`.
-8. Open the `Tracing` tab and inspect requests after browsing again.
+After this introduction, the best next workshop is `Manual QA to Automation`.
 
-This gives you a quick understanding of what the environment can do.
-
-## What Good Learning Looks Like
-
-Use Testbed well by doing this:
-
-- read the workshop section
-- perform the related action in the app
-- inspect what happened
-- connect UI behavior to API behavior
-- capture what you learned
-
-Do not rush through the workshops as if they are just text.
-They are most useful when you actively test alongside them.
-
-## Where To Go Next
-
-After this introduction, the best next workshop is:
-
-- Manual QA to Automation Workshop
-
-That workshop starts with exploratory testing and then moves into Playwright Codegen and Postman.
+That workshop starts from familiar manual testing behavior and gradually introduces automation ideas. It is the right place to begin if you are comfortable finding bugs manually but want help turning that skill into repeatable Playwright and Postman work.
 
 ```quiz
-id: testbed-starting-point
-question: What is the best first workshop to take after this introduction if you want to move from manual QA into automation?
+id: intro-next-step
+question: What is the main purpose of Testbed for a manual QA tester?
 passCondition: all
 options:
-  - id: manual-to-automation
-    label: Manual QA to Automation Workshop
+  - id: practice-automation
+    label: To practise moving from manual testing into more structured automation and API testing
     correct: true
-  - id: release-readiness
-    label: Release Readiness Workshop
+  - id: replace-thinking
+    label: To replace testing judgement with prewritten scripts
     correct: false
-  - id: regression-strategy
-    label: Regression Strategy Workshop
+  - id: desktop-only
+    label: To teach only how to use the desktop admin shell
     correct: false
 ```

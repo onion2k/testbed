@@ -1,262 +1,82 @@
 # Test Case Design Workshop
 
-This workshop teaches testers how to design strong test cases instead of writing long lists of repetitive checks.
+This workshop is about turning a feature into a smaller set of stronger test ideas.
 
-It uses Testbed to practise:
+Many testers begin by trying to be thorough through volume. They write a long list of cases because that feels safe. The problem is that a long list can still be weak if it repeats the same idea many times without teaching you anything new.
 
-- identifying what actually needs coverage
-- reducing duplication
-- designing high-value test scenarios
-- applying classic test design techniques
+Strong test case design is not mainly about quantity. It is about choosing cases that cover meaningfully different behavior.
 
-## Learning Goals
+## Start With the Rule, Not the Screen
 
-By the end of this workshop, you should be able to:
+A screen is only the visible surface of the feature.
 
-- turn a feature into a small set of strong test ideas
-- use equivalence partitioning
-- use boundary value thinking
-- use decision tables
-- use state-transition thinking
-- avoid bloated low-value test packs
+Under that screen are rules.
 
-## Why Test Case Design Matters
+For example, a login page is not just a form with two boxes. It is also a set of rules about:
 
-Weak test design often looks like:
+- valid input
+- invalid input
+- missing input
+- incorrect credentials
+- successful session creation
 
-- too many minor variations
-- repeated checks for the same rule
-- lots of steps but little insight
-- no reason for why each case exists
+When you identify the rules first, the cases become clearer and less repetitive.
 
-Strong test design focuses on:
+## Why This Helps With Automation
 
-- different behavior classes
-- high-value boundaries
-- meaningful combinations
-- user and business risk
+This way of thinking becomes even more valuable when you automate, because automated suites become hard to maintain if they contain many similar checks that all prove the same rule.
 
-## Part 1: Start with the Rule, Not the Screen
+A smaller number of thoughtful tests is often more powerful than a large number of repetitive ones.
 
-Before writing steps, identify the rule you are testing.
+## Use Simple Design Techniques
 
-Example rules in Testbed:
+Even without formal language, you can start asking helpful questions such as:
 
-- only valid users can log in
-- customer or VIP users can access shop routes
-- only VIP users can access VIP content unless bypass mode is enabled
-- orders should be created only when checkout completes successfully
-- products should render only when product data is valid and available
+- what are the clearly different kinds of input
+- where are the boundaries
+- what states can the feature move between
+- which combinations actually change the behavior
 
-### Workshop exercise
+Those questions naturally lead you toward stronger cases.
 
-Take the login page and write:
+## What This Looks Like in Testbed
 
-- one UI feature description
-- the actual rules behind it
+In Testbed, you can practise this by taking a simple feature such as login or checkout and asking what really needs to be proved. Instead of writing many similar cases, try grouping the behavior into categories that are meaningfully different.
 
-Example:
+That is the habit you want to build. You are not trying to write “more cases”. You are trying to write better cases.
 
-- feature: login form
-- rules:
-  - username must be present
-  - username must be an email
-  - password must be present
-  - password must meet minimum length
-  - valid credentials create a session
-  - invalid credentials show an error
+## A Simple Example
 
-## Part 2: Use Equivalence Partitioning
+Take the login feature.
 
-Equivalence partitioning means grouping inputs that should behave the same way.
+Rather than listing dozens of tiny variations, you might identify a smaller set of important ideas:
 
-For login:
-
-- valid email + valid password
-- empty username
+- valid credentials
+- missing username
 - invalid email format
-- empty password
-- too-short password
-- valid format but wrong credentials
+- missing password
+- valid format but incorrect credentials
 
-You do not need ten different invalid emails if they all prove the same rule.
+That is a much stronger starting point than repeating the same invalid idea in many slightly different forms.
 
-### Workshop exercise
+## Common Beginner Mistake
 
-Create partitions for:
+A common mistake is to confuse long case lists with strong coverage.
 
-- login input
-- shipping form
-- payment form
+Length can feel reassuring, but if many of the cases all prove the same rule, the extra volume is often not helping very much.
 
-Write only one or two strong cases per partition.
+## What Good Looks Like
 
-## Part 3: Use Boundary Value Thinking
+Good test case design usually feels deliberate. Each case exists because it covers a different rule, risk, boundary, or state. If you remove one of those cases, you lose something meaningful.
 
-Boundaries are common defect areas.
+## Final Thought
 
-Examples in Testbed:
+Good test case design helps you spend your effort well.
 
-- password minimum length
-- postcode minimum length
-- card number exact length
-- CVV valid lengths
+It makes manual testing sharper and automation more meaningful, because each case exists to teach you something different about the feature.
 
-### Workshop exercise
+## Further Reading
 
-Pick one field and test:
-
-- just below the boundary
-- exactly on the boundary
-- just above the boundary
-
-Example:
-
-Password minimum length is 6:
-
-- 5 characters
-- 6 characters
-- 7 characters
-
-That gives more value than random length variation.
-
-## Part 4: Use Decision Tables
-
-Decision tables help when multiple conditions combine into different outcomes.
-
-Example: route access
-
-Conditions:
-
-- user logged in or not
-- user role is customer, VIP, or admin
-- bypass mode enabled or not
-
-Possible outcomes:
-
-- access granted
-- redirected to login
-- access denied
-
-### Workshop exercise
-
-Build a simple decision table for access to:
-
-- `/shop`
-- `/vip`
-
-Then choose the smallest set of cases that proves the logic.
-
-## Part 5: Use State-Transition Thinking
-
-Some features behave differently depending on the current state.
-
-Examples:
-
-- empty basket -> populated basket
-- checkout step 1 -> step 2 -> step 3 -> review
-- unauthenticated -> authenticated
-- no orders -> order created -> order history visible
-
-### Workshop exercise
-
-Map the checkout journey as states:
-
-- empty basket
-- basket ready
-- shipping entered
-- payment entered
-- review ready
-- order placed
-
-Then ask:
-
-- what transitions are valid
-- what transitions should be blocked
-- what negative cases matter most
-
-This helps you design cases around behavior rather than page layout.
-
-## Part 6: Remove Redundant Tests
-
-A common design mistake is writing several cases that all prove the same rule.
-
-Example:
-
-- cannot continue with missing full name
-- cannot continue with missing address
-- cannot continue with missing city
-
-Those may all be valid, but they may belong in:
-
-- a focused form-validation set
-
-You do not need to repeat the full checkout journey for every missing field.
-
-### Workshop exercise
-
-Review a rough test list and mark each case as:
-
-- unique value
-- redundant
-- better suited to API level
-- better suited to exploratory testing
-
-## Part 7: Choose the Best Level for Each Case
-
-Not every designed case belongs in Playwright.
-
-Examples:
-
-- login success: UI and API
-- malformed product payload: UI and API
-- every validation combination: probably better split across UI and lower-level checks
-
-### Workshop exercise
-
-For each designed case, choose:
-
-- UI automation
-- API automation
-- exploratory/manual
-- out of scope
-
-This keeps your suite leaner and stronger.
-
-## Part 8: Test Case Template
-
-Use this format:
-
-```text
-Title:
-
-Rule being tested:
-
-Setup:
-
-Input:
-
-Action:
-
-Expected result:
-
-Level:
-
-Priority:
-```
-
-This keeps the case focused on purpose, not just steps.
-
-## Part 9: Practice Challenges
-
-1. Design a compact login validation test pack.
-2. Design a checkout validation pack using boundary analysis.
-3. Design a VIP access pack using a decision table.
-4. Design an order journey pack using state transitions.
-
-## Part 10: Final Takeaway
-
-Good test case design is about choosing the smallest set of cases that proves the most important behavior.
-
-The goal is not more cases.
-The goal is better coverage.
+- Material on equivalence partitioning and boundary value analysis
+- Team examples of strong test cases, if available
+- Notes on translating manual test cases into automation candidates

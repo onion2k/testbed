@@ -1,72 +1,83 @@
 # Accessibility Testing Workshop
 
-This workshop teaches testers how to include accessibility in their testing approach instead of treating it as a separate specialty.
+This workshop introduces accessibility as part of normal product quality, not as a separate specialty that only a few people need to think about.
 
-It uses Testbed to practise:
+That matters for two reasons.
 
-- keyboard testing
-- label and role awareness
-- accessible locator thinking
-- identifying accessibility risks that also affect automation
+First, accessibility affects real users directly. If someone cannot move through the page with a keyboard, cannot understand a button name, or loses track of focus during a journey, the product is harder to use.
 
-## Learning Goals
+Second, accessibility often overlaps with automation quality. The same things that help users, such as clear labels, meaningful button names, and consistent page structure, also make it easier to build reliable tests.
 
-By the end of this workshop, you should be able to:
+## Why Accessibility Belongs in Everyday QA
 
-- explain why accessibility matters in QA
-- run basic keyboard and form-label checks
-- spot common accessibility issues
-- understand how accessibility and testability reinforce each other
+New testers sometimes hear accessibility described as something highly specialised. In reality, there are many basic accessibility checks that fit naturally into ordinary testing work.
 
-## Part 1: Why Accessibility Matters Here
+For example, when you test a form manually, you can also ask:
 
-Accessible apps are:
+- does each field have a clear label
+- can I move through the form with the keyboard
+- can I tell where focus is
+- do the buttons have names that make sense
 
-- easier to use
-- easier to automate
-- easier to reason about
+These are not exotic questions. They are practical quality questions.
 
-The same things that help assistive technology often help automation too:
+## What to Look For in Testbed
 
-- labels
-- roles
-- meaningful names
-- predictable focus
+Testbed is a good environment for practising accessibility thinking because it already exposes roles, labels, and test IDs in a deliberate way.
 
-## Part 2: Basic Accessibility Checks
+That means you can compare what is easy to use manually with what is easy to locate in automation.
 
-Start with:
+A good first pass is to try the main user journeys with only the keyboard:
 
-- keyboard navigation
-- visible focus
-- form labels
-- meaningful button names
-- heading structure
+- open login
+- move through the fields
+- sign in
+- navigate the shop
+- move through checkout
 
-### Workshop exercise
+As you do that, pay attention to whether the experience still feels understandable without relying on a mouse.
 
-Using only the keyboard:
+## Accessibility and Automation Support Each Other
 
-1. navigate to login
-2. complete sign-in
-3. navigate shop content
-4. move through checkout fields
+One of the most useful lessons here is that poor accessibility often makes poor automation easier to spot.
 
-Record where the experience becomes confusing or blocked.
+If a form field has no label, it is harder for a screen reader user and also harder for a Playwright test using `getByLabel`.
 
-## Part 3: Accessibility and Automation
+If a button has an unclear name, it is harder for a human user and also harder for a test using `getByRole`.
 
-Good accessibility often leads to better locators.
+That does not mean accessibility and automation are identical, but it does mean they often improve together.
 
-Examples:
+## A Simple Example
 
-- `getByRole`
-- `getByLabel`
+A very approachable accessibility exercise is to use the login page without the mouse.
 
-If those are hard to use, it may indicate a testability and accessibility weakness.
+Move through the page using the keyboard only. Notice whether the focus indicator is visible. Notice whether the field labels are clear and whether the submit action is easy to understand. This one small exercise already teaches a lot about names, focus, and form usability.
 
-## Part 4: Final Takeaway
+## Common Beginner Mistake
 
-Accessibility testing belongs inside mainstream QA.
+A common mistake is to assume accessibility testing only begins when specialist tools or deep standards knowledge are involved.
 
-It improves product quality and usually improves automation quality too.
+Those things can become useful later, but a great deal of accessibility awareness starts with simple and practical questions about focus, names, labels, and keyboard movement.
+
+## What Good Looks Like
+
+Good accessibility-aware testing feels like normal thoughtful testing with a wider awareness of how different users move through the page. The tester notices whether the journey remains understandable and usable without relying on a mouse or perfect visual cues.
+
+## Final Thought
+
+Accessibility testing does not need to begin with complexity.
+
+It can begin with thoughtful habits:
+
+- check focus
+- check labels
+- check names
+- check keyboard movement
+
+Those simple checks often reveal problems that matter to users and help you become a better automation tester at the same time.
+
+## Further Reading
+
+- WCAG quick reference
+- WAI-ARIA Authoring Practices
+- Playwright guidance on role- and label-based locators

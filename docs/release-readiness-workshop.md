@@ -1,91 +1,68 @@
 # Release Readiness Workshop
 
-This workshop teaches testers how to decide whether the team has enough confidence to release.
+This workshop is about how testers think near the end of a change or release cycle.
 
-It uses Testbed to practise:
+By this stage, the goal is not only to find defects. It is also to explain how much confidence the team should have, what is still risky, and what remains unclear.
 
-- summarising coverage
-- identifying remaining risk
-- distinguishing blockers from known limitations
-- making a release recommendation clearly
+## What Release Readiness Really Means
 
-## Learning Goals
+Release readiness is not the same as “all tests passed”.
 
-By the end of this workshop, you should be able to:
+A thoughtful tester also considers:
 
-- summarise testing performed
-- explain what risks remain
-- identify what should block release
-- communicate a release recommendation clearly
+- what was covered
+- what was not covered
+- what defects are still open
+- what residual risk remains
 
-## Part 1: What Release Readiness Means
+This makes the final recommendation much more useful.
 
-Release readiness is not:
+## Why This Is a Valuable Skill
 
-- “all tests passed”
+Teams need more from testers than a list of failures. They also need clear judgement.
 
-It is:
+That does not mean guessing. It means turning evidence into a useful view of confidence.
 
-- enough confidence for the current level of risk
+## What This Looks Like in Testbed
 
-That means you should consider:
+In Testbed, release-readiness thinking might involve asking whether the main user journeys have been covered, whether important negative paths have been explored, and whether any known issues remain that would change the level of confidence in the release.
 
-- feature coverage
-- critical-path results
-- unresolved high-severity defects
-- residual risk
-- known gaps
+This is useful because it shifts the tester from “I found these issues” to “Here is what we know about quality right now”.
 
-## Part 2: Use a Readiness Summary
+## A Simple Example
 
-Write a release summary with:
+Imagine the team has:
 
-- what was tested
-- what passed
-- what failed
-- what remains untested
-- what risks remain
-- recommendation
+- a passing login flow
+- a passing checkout happy path
+- good coverage of one or two major failure scenarios
+- one unresolved issue in a lower-risk area
 
-### Workshop exercise
+The release conversation is now more useful because it can be based on evidence and trade-offs rather than only a raw bug count.
 
-Create a readiness summary for Testbed after testing:
+## Common Beginner Mistake
 
-- login
-- checkout
-- orders
-- one negative scenario
+A common mistake is to assume that release readiness is simply the absence of failing tests.
 
-## Part 3: Blockers vs Residual Risk
+In reality, it is about understanding what was covered, what still looks risky, and what level of confidence the team should honestly have.
 
-Not every issue should block release.
+## What Good Looks Like
 
-Examples of likely blockers:
+Good release-readiness thinking means the tester can describe:
 
-- cannot complete checkout
-- wrong total
-- access control broken
+- what was checked
+- what remains uncertain
+- what the most important open risks are
+- how confident the team should be and why
 
-Examples of possible residual risk:
+## Final Thought
 
-- low-impact wording issue
-- minor cosmetic inconsistency
+Release readiness is about communicating confidence honestly.
 
-### Workshop exercise
+It helps the team understand not only what was tested, but what the testing means.
 
-Sort findings into:
+## Further Reading
 
-- release blocker
-- acceptable risk
-- follow-up item
-
-## Part 4: Final Takeaway
-
-Release readiness is a judgement backed by evidence.
-
-A strong tester can explain:
-
-- what was validated
-- what is still risky
-- whether release is advisable
-- why
+- Team release criteria or exit criteria if available
+- Material on confidence reporting and residual risk
+- Articles on release decision support for testers

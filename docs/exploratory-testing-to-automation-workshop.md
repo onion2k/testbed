@@ -1,99 +1,75 @@
 # Exploratory Testing to Automation Workshop
 
-This workshop teaches testers how to turn exploratory findings into repeatable automated checks.
+This workshop is about one of the most useful transitions a tester can learn: taking what you discover during exploration and turning it into repeatable automated coverage.
 
-It uses Testbed to practise:
+Exploration and automation are not opposites. In fact, they support each other very well. Exploration helps you understand what matters. Automation helps you protect it once you understand it.
 
-- exploring a feature manually
-- recording useful observations
-- identifying stable automation candidates
-- choosing what should stay exploratory
-- turning notes into Playwright and Postman coverage
+## Start With a Clear Charter
 
-## Learning Goals
+Exploratory testing works best when you begin with a purpose.
 
-By the end of this workshop, you should be able to:
+That purpose does not need to be complicated. It can be something simple such as:
 
-- run a focused exploratory session
-- capture notes that support automation later
-- distinguish one-off discovery from repeatable checks
-- convert findings into UI and API tests
+- explore checkout failure handling
+- explore how VIP access works
+- explore what happens when products do not load
 
-## Part 1: Explore with a Mission
+The charter gives your session direction. Without it, you can easily end up clicking around without learning very much.
 
-Exploratory testing works best with a clear charter.
+## Capture Better Notes
 
-Example charters:
+The key to turning exploration into automation is the quality of your notes.
 
-- explore checkout error handling
-- explore VIP access control
-- explore product-loading behavior under failure
+A weak note might say:
 
-### Workshop exercise
+“Shop seemed broken.”
 
-Choose one charter and spend 15 minutes exploring.
+A stronger note might say:
 
-Record:
+“With the malformed products scenario active, opening `/shop` shows a readable error instead of crashing.”
 
-- what you tried
-- what you observed
-- what surprised you
-- what looked automatable
-
-## Part 2: Capture Better Notes
-
-Good notes include:
-
-- scenario
-- setup
-- user action
-- observed result
-- possible assertion
-- useful API dependency
-
-### Example note
-
-- scenario: product API malformed
-- setup: `schema-corruption-products`
-- action: open `/shop`
-- observed result: readable error message
-- automation candidate: assert error state is visible
-- API dependency: `GET /api/shop/products`
-
-## Part 3: Choose What to Automate
-
-Automate findings that are:
-
-- repeatable
-- important
-- stable enough
-- worth keeping in regression
-
-Keep exploratory when the value is:
-
-- discovery
-- creativity
-- unusual combinations
-- one-off investigation
-
-## Part 4: Convert a Finding into a Test
-
-Take an exploratory note and turn it into:
+That stronger note already contains the beginning of a test idea:
 
 - setup
 - action
-- assertion
+- expected result
 
-### Workshop exercise
+## Decide What Should Be Automated
 
-Convert one note into:
+Not everything you discover in exploration needs to become an automated check.
 
-- a Playwright test idea
-- a Postman test idea
+Automate findings that are:
 
-## Part 5: Final Takeaway
+- important
+- repeatable
+- stable enough to keep over time
 
-Exploratory testing and automation are not opposites.
+Keep some things exploratory when their value is mainly discovery, comparison, or creativity.
 
-Exploration finds the behavior worth protecting.
-Automation protects it once you understand it.
+This is an important skill. Good automation does not try to freeze every interesting thing you ever noticed.
+
+## Turn a Finding Into a Simple Test Idea
+
+Once you have a useful note, break it into three parts:
+
+- what state do I need
+- what action should happen
+- what result should I assert
+
+For example:
+
+State: malformed products response.
+
+Action: open the shop page.
+
+Expected result: the page shows a readable error instead of breaking.
+
+That can later become a Playwright test, a Postman check, or both.
+
+## Final Thought
+
+Exploratory testing helps you find the behavior worth protecting.
+
+Automation helps you protect it consistently.
+
+The better you get at moving between those two modes, the stronger your testing becomes.

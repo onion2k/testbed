@@ -1,169 +1,97 @@
 # API Contract Testing Workshop
 
-This workshop teaches testers how to validate API behavior as a contract, not just as a transport layer.
+This workshop is about understanding an API as a promise between two parts of a system.
 
-It uses Testbed to practise:
+When one system calls another, it depends on more than the endpoint existing. It depends on that endpoint returning the kind of data the consumer expects, in the shape the consumer expects, with the kinds of success and error responses the consumer can handle.
 
-- checking response shape
-- checking status-code behavior
-- checking error handling
-- spotting schema drift
-- connecting API failures to UI impact
+That is what contract testing is really about.
 
-## Learning Goals
+## What a Contract Means in Simple Terms
 
-By the end of this workshop, you should be able to:
+An API contract tells the caller what it can rely on.
 
-- explain what an API contract is
-- identify contract expectations for Testbed endpoints
-- write useful Postman checks for success and failure cases
-- distinguish transport failure from schema failure
-- use fault modes to test consumer resilience
+That usually includes:
 
-## What a Contract Means Here
+- the endpoint path and method
+- the success status
+- the top-level response structure
+- important nested fields
+- the type of those fields
+- the error shape when something goes wrong
 
-An API contract includes:
+In Testbed, for example, the products endpoint is expected to return a `products` array. The orders endpoint is expected to return an `order` object when creation succeeds. If that structure changes unexpectedly, the UI may break even if the request still returns `200`.
 
-- endpoint path and method
-- expected status codes
-- expected response structure
-- expected error structure
-- expected field types
+## Why Contract Testing Matters to Manual Testers
 
-Examples in Testbed:
+Contract testing is especially helpful for testers moving into automation because it teaches a more system-level way of thinking.
 
-- `POST /api/auth/login` should return a user object on success
-- `GET /api/shop/products` should return a `products` array
-- `POST /api/orders` should return an `order` object on success
+Instead of asking only “Does the page look right?”, you start asking:
 
-## Part 1: Start with the Happy Contract
+- what is the browser expecting from the service
+- which fields matter most
+- what would happen if one of those fields disappeared
+- what would happen if the type changed
 
-For each key endpoint, define:
+That shift is important because it makes your testing more precise and often helps you spot problems earlier.
 
-- valid request
-- successful status
-- required fields
-- required field types
+## Use Testbed to Break the Contract Safely
 
-### Workshop exercise
+Testbed is a good place to learn this because it lets you deliberately break responses in controlled ways.
 
-Document the contract for:
+You can create responses with:
 
-- `POST /api/auth/login`
-- `GET /api/shop/products`
-- `POST /api/orders`
-
-Use this template:
-
-```text
-Endpoint:
-
-Success status:
-
-Required top-level fields:
-
-Important nested fields:
-
-Field types:
-```
-
-## Part 2: Test Error Contracts Too
-
-Error handling is part of the contract.
-
-Test:
-
-- expected error statuses
-- presence of error messages
-- correlation ID headers
-- consistency of error shape
-
-### Workshop exercise
-
-Use:
-
-- `auth-expired`
-- `orders-api-422`
-
-Then verify:
-
-- status code
-- error body
-- correlation header
-
-## Part 3: Use Fault Modes to Break the Contract
-
-The fault matrix makes contract failures explicit.
-
-Use:
-
-- `missing-fields`
-- `wrong-types`
-- `malformed-json`
-- `empty-body`
-
-### Workshop exercise
-
-Apply a fault to `shop.products` and compare:
-
-- normal success
 - missing fields
-- wrong types
+- wrong data types
 - malformed JSON
+- empty bodies
 
-Ask:
+That gives you a safe way to practise a very realistic kind of failure: the service is “there”, but what it returns is not actually usable.
 
-- what would a consumer expect
-- what actually arrived
-- how would this affect the UI
+## A Practical Way to Approach Contract Testing
 
-## Part 4: Write Postman Assertions
+Start with the happy response.
 
-Example:
+Ask yourself:
 
-```js
-pm.test('status is 200', function () {
-  pm.response.to.have.status(200)
-})
+- what fields must exist
+- which fields are most important
+- what type should each field be
+- what error response should the client understand
 
-pm.test('products is an array', function () {
-  const json = pm.response.json()
-  pm.expect(json.products).to.be.an('array')
-})
+Then use the fault tools to see how the consumer behaves when the contract breaks.
 
-pm.test('correlation header exists', function () {
-  pm.expect(pm.response.headers.get('x-testbed-correlation-id')).to.exist
-})
-```
+This teaches you something much stronger than simple transport checks. It teaches you whether the service and the consumer still agree.
 
-### Workshop exercise
+## What This Looks Like in Testbed
 
-Write checks for:
+In Testbed, the clearest contract examples are the login, products, and orders endpoints. The browser app depends on them returning useful data in the shape it expects. If the structure changes unexpectedly, the page may stop behaving correctly even though the request itself still “worked”.
 
-- login success
-- products success
-- orders failure
-- malformed products response
+That is the kind of problem contract testing is designed to expose.
 
-## Part 5: Consumer Impact
+## A Simple Example
 
-Contract testing is more valuable when you ask:
+Imagine the products endpoint stops returning an array and instead returns a string. A very shallow API check might only notice that the response status is still `200`. A contract-aware check would notice immediately that the response is no longer usable by the browser.
 
-- what would the UI do with this response
-- what would break if a field disappeared
-- what would break if a type changed
+That difference is the heart of this workshop.
 
-### Workshop exercise
+## Common Beginner Mistake
 
-Pick one contract break and write:
+One common mistake is to treat any successful status code as proof that the API is behaving correctly.
 
-- API expectation
-- actual response problem
-- likely UI impact
+That is often too weak. Contract testing teaches you to ask whether the response is actually usable, not just whether it exists.
 
-## Part 6: Final Takeaway
+## What Good Looks Like
 
-API contract testing is about protecting consumers from unexpected behavior.
+Good contract testing means the tester can explain which parts of the response matter most and why. It also means they can connect a contract break to likely consumer impact instead of treating the API as an isolated thing.
 
-A passing status code is not enough.
-You must also prove the structure is usable and consistent.
+## Final Thought
+
+Contract testing helps you catch the problems that sit between “request sent” and “UI behaved correctly”.
+
+That middle area is often where some of the most important automation learning happens.
+
+## Further Reading
+
+- Postman documentation on tests and scripts
+- OpenAPI or schema documentation used by your team
+- Introductions to consumer-driven contract testing

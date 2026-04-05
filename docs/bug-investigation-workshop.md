@@ -1,352 +1,88 @@
 # Bug Investigation Workshop
 
-This workshop teaches testers how to investigate failures methodically instead of jumping to conclusions.
+This workshop teaches you how to investigate problems carefully instead of jumping straight to a conclusion.
 
-It uses Testbed to practise:
+That matters because finding a bug is only part of the job. A strong tester should also be able to explain what went wrong, when it happens, how often it happens, and what evidence supports the conclusion.
 
-- reproducing issues consistently
-- isolating the point of failure
-- collecting useful evidence
-- separating UI symptoms from API causes
-- writing stronger defect reports
+## Why This Skill Matters
 
-## Learning Goals
+A vague bug report sounds like this:
 
-By the end of this workshop, you should be able to:
+“Checkout is broken.”
 
-- reproduce a defect in a controlled way
-- use presets and faults to narrow the problem
-- inspect traces and correlation IDs
-- decide whether a failure is UI, API, data, or test setup related
-- write a bug report that developers can act on quickly
+That may be true, but it is not very useful. It does not tell the next person what conditions caused the issue, whether it is repeatable, or where the problem might live.
 
-## Why Bug Investigation Matters
+A stronger investigation sounds more like this:
 
-A weak investigation sounds like:
+“With the `orders-api-422` scenario active, placing an order returns a `422` response from `POST /api/orders`, and the browser shows the server error message without crashing.”
 
-- “Checkout is broken.”
-- “The page didn’t work.”
-- “It failed sometimes.”
+That is much more useful because it connects the symptom to a condition and to evidence.
 
-A strong investigation sounds like:
+## A Simple Investigation Workflow
 
-- “With the `orders-api-422` preset active, `POST /api/orders` returns `422` and the UI displays the server message correctly, so the backend failure is exposed but handled.”
-- “With the `schema-corruption-products` preset active, `GET /api/shop/products` returns malformed JSON and the page renders an error instead of crashing.”
-- “The issue appears only after product data is hidden and the basket still contains that product, suggesting stale UI state.”
+When something looks wrong, use the same thought process each time:
 
-The point is not just to find that something is wrong.
-The point is to explain what is wrong, under what conditions, and where it likely lives.
+First, describe the symptom.
 
-## Investigation Workflow
+Then reproduce it.
 
-Use this sequence every time:
+Then control the state.
 
-1. define the symptom
-2. reproduce it
-3. control the state
-4. narrow the scope
-5. inspect the evidence
-6. form a hypothesis
-7. verify the hypothesis
-8. write the finding clearly
+Then inspect the evidence.
 
-## Part 1: Reproduce Intentionally
+Then form a careful conclusion.
 
-Before you debug anything, make sure you can reproduce it more than once.
+This sequence sounds simple, but it prevents a lot of weak testing habits.
 
-### Workshop exercise
+## Part 1: Reproduce the Problem on Purpose
 
-Use the desktop app and apply:
+Before you start diagnosing, make sure the problem really happens more than once.
 
-- `orders-api-422`
+Use the desktop app and apply a scenario such as `orders-api-422`. Then carry out the checkout journey as a customer. Repeat the same steps more than once and pay attention to what stays consistent.
 
-Then:
-
-1. log in as `customer@example.com`
-2. add a product to the basket
-3. complete checkout
-4. observe the failure
-5. repeat the same steps
-
-Ask:
+Ask yourself:
 
 - does it fail every time
-- does it fail only in one route or step
-- what exact message is shown
-- what changed immediately before the failure
+- does it fail at the same point
+- is the user-facing message always the same
+- does anything else in the app still work
 
-If you cannot reproduce a bug reliably, your next task is not diagnosis.
-Your next task is improving reproduction.
+If you cannot reproduce a problem consistently, your first job is to improve the reproduction, not to guess at the cause.
 
-## Part 2: Control the Conditions
+## Part 2: Remove Noise From the Environment
 
-Do not investigate in a drifting environment.
+Bug investigation becomes much easier when the environment is controlled.
 
-Use:
+That is one reason Testbed is useful. You can reset state, apply a preset, and switch on a known failure mode. That removes a lot of uncertainty.
 
-- presets
-- fault matrix
-- reset controls
-- seeded users
+Try comparing the same journey under:
 
-### Workshop exercise
+- `baseline`
+- a named preset
+- a manual fault configuration
 
-Compare these conditions:
+The point is to learn what changed and what did not.
 
-1. `baseline`
-2. `orders-api-422`
-3. manual fault on `orders.create`
+## Part 3: Use the Trace View
 
-For each one, ask:
+When you reproduce an issue, open the trace view in the desktop app.
 
-- what changed in the environment
-- what stayed the same
-- what does this tell me about the failure source
+This is where you can connect what you saw in the browser to what happened underneath. If the page shows an error, the trace may reveal whether the API returned a failure, returned malformed data, or was simply slow.
 
-You are learning to remove noise from the investigation.
+This is a very useful skill for manual testers moving into automation, because it teaches you to think beyond the visible page.
 
-## Part 3: Follow the Request Path
+## Part 4: Decide Where the Problem Probably Lives
 
-Use the `Tracing` tab while reproducing the issue.
+Once you have the evidence, ask a simple but important question:
 
-Look for:
+Is this mainly a UI problem, an API problem, a data problem, or a setup problem?
 
-- pathname
-- endpoint key
-- method
-- response status
-- response mode
-- latency
-- correlation ID
-- fault metadata
+Sometimes the browser symptom is only the surface. Sometimes the API is healthy and the UI is presenting it badly. Sometimes the browser is fine and the server is returning the wrong shape.
 
-### Workshop exercise
+You do not always need to prove the final root cause yourself, but you should be able to narrow the problem to a useful area.
 
-Trigger a checkout failure and then answer:
+## Final Thought
 
-1. Which request failed?
-2. What status did it return?
-3. Was a fault injected?
-4. Did the UI message match the backend message?
-5. Was the problem present before the response reached the page?
+A good investigation is calm, repeatable, and evidence-based.
 
-This is the core habit:
-
-- UI symptom first
-- request evidence second
-- diagnosis third
-
-## Part 4: Separate Symptom from Cause
-
-The visible problem is not always the real problem.
-
-Examples:
-
-- visible symptom: “Products unavailable”
-- possible causes:
-  - API returned `503`
-  - API returned malformed JSON
-  - API returned wrong shape
-  - UI parsed the response incorrectly
-
-### Workshop exercise
-
-Run these scenarios one by one:
-
-- `inventory-empty`
-- `schema-corruption-products`
-- manual `http-error` on `shop.products`
-
-For each scenario, write:
-
-- visible symptom
-- likely cause
-- confirmed cause
-
-This teaches you to avoid assumptions.
-
-## Part 5: Form and Test Hypotheses
-
-After gathering evidence, write a hypothesis in one sentence.
-
-Good example:
-
-- “The UI is behaving correctly; the failure originates in `POST /api/orders` returning a forced validation error.”
-
-Another good example:
-
-- “The products page failure is caused by malformed JSON from the API rather than a normal HTTP error.”
-
-Bad example:
-
-- “React is broken.”
-
-### Workshop exercise
-
-Investigate one failure and write:
-
-1. symptom
-2. evidence
-3. hypothesis
-4. verification step
-
-Template:
-
-```text
-Symptom:
-
-Evidence:
-
-Hypothesis:
-
-Verification:
-```
-
-## Part 6: Decide Where the Bug Lives
-
-Most failures in Testbed can be classified into one of these buckets:
-
-- UI behavior bug
-- API contract bug
-- data/state bug
-- environment/setup issue
-- test bug
-
-### Example classification
-
-Scenario: `schema-corruption-products`
-
-- if the API returns invalid JSON and the UI shows a readable error:
-  this is not a UI bug, it is a controlled API failure handled correctly
-
-- if the API returns invalid JSON and the UI crashes:
-  this is a UI resilience bug
-
-Scenario: `orders-api-422`
-
-- if the API returns `422` and the UI shows the error:
-  expected behavior under failure
-
-- if the API returns `422` but the UI shows success:
-  UI bug
-
-### Workshop exercise
-
-Take three failures and assign each to one category.
-Explain why.
-
-## Part 7: Write a Strong Bug Report
-
-A strong bug report should include:
-
-- concise title
-- environment
-- setup state or preset
-- reproduction steps
-- expected result
-- actual result
-- evidence
-- likely impact
-
-### Example bug report
-
-```text
-Title:
-Shop page crashes when products API returns malformed JSON
-
-Environment:
-Local Testbed server, browser app, preset `schema-corruption-products`
-
-Steps:
-1. Apply preset `schema-corruption-products`
-2. Open /shop
-3. Wait for product data to load
-
-Expected:
-Page shows a readable error state
-
-Actual:
-Page becomes unusable and does not render a stable recovery message
-
-Evidence:
-- Trace entry for GET /api/shop/products shows malformed-json response mode
-- Response cannot be parsed
-- Correlation ID: <value>
-
-Impact:
-A corrupt backend payload can take down a key shopping route instead of failing gracefully
-```
-
-### Workshop exercise
-
-Write a bug report for one of these:
-
-- failed checkout under `orders-api-422`
-- corrupt products response
-- incorrect empty-state handling
-
-## Part 8: Investigation Checklist
-
-Use this checklist during practice:
-
-- Can I reproduce it twice?
-- Did I reset or control the environment first?
-- Do I know which request is involved?
-- Did I inspect the trace?
-- Do I know whether the issue is expected under the active scenario?
-- Have I separated symptom from cause?
-- Can I explain the likely failure layer?
-- Do I have enough evidence for a developer?
-
-## Part 9: Practice Scenarios
-
-### Scenario 1: Checkout fails
-
-Use:
-
-- preset `orders-api-422`
-
-Investigate:
-
-- what failed
-- what request was involved
-- whether the UI handled it acceptably
-
-### Scenario 2: Shop page error
-
-Use:
-
-- preset `schema-corruption-products`
-
-Investigate:
-
-- whether the response is malformed or just unsuccessful
-- whether the UI handles it gracefully
-
-### Scenario 3: Slow admin
-
-Use:
-
-- preset `admin-slow`
-
-Investigate:
-
-- which request is slow
-- whether the behavior is just latency or a true defect
-
-## Part 10: Final Takeaway
-
-Good investigation is structured.
-
-The goal is not:
-
-- to guess quickly
-
-The goal is:
-
-- to reproduce reliably
-- gather useful evidence
-- isolate the failure layer
-- explain the issue clearly
-
-That is what turns a tester into a strong debugging partner for engineering teams.
+The goal is not just to notice that something failed. The goal is to explain the failure clearly enough that another tester, developer, or automation engineer can trust what you found.

@@ -1,320 +1,81 @@
 # Negative Testing Workshop
 
-This workshop teaches testers how to design and execute failure-focused testing instead of stopping at happy paths.
+This workshop is about testing what happens when things go wrong.
 
-It uses Testbed to practise:
+Many new automation testers begin with the happy path because it feels safe and easy to understand. That is a useful starting point, but it is not enough. Real systems fail in many different ways, and strong testers learn to explore those failures deliberately.
 
-- invalid states
-- broken dependencies
-- bad responses
-- empty data
-- resilience and recovery behavior
+## What Negative Testing Really Means
 
-## Learning Goals
+Negative testing is not about being destructive for the sake of it.
 
-By the end of this workshop, you should be able to:
+It is about asking sensible questions such as:
 
-- explain the purpose of negative testing
-- identify high-value failure scenarios
-- use presets and endpoint faults to create those scenarios
-- decide what the system should do under failure
-- design UI and API checks for non-happy paths
+- what happens if the service is unavailable
+- what happens if the data is missing
+- what happens if the response shape is wrong
+- what happens if the user enters invalid data
 
-## Why Negative Testing Matters
+Those questions are valuable because they tell you how resilient the system is.
 
-Happy-path testing answers:
+## Why Testbed Helps Here
 
-- “Does it work when everything is valid?”
+Testbed is especially useful for negative testing because it lets you trigger known failures in a controlled way. You do not need to hope that something breaks by accident. You can choose a preset or a fault mode and see how the app behaves.
 
-Negative testing answers:
+That makes it a very good environment for learning how to test beyond the happy path.
 
-- “What happens when something goes wrong?”
+## Part 1: Think in Failure Categories
 
-Strong products need both.
+One useful way to plan negative testing is to think in categories rather than screens.
 
-Examples of useful negative checks:
+For example, a failure might be:
 
-- invalid credentials
-- empty product list
-- order creation failure
-- malformed API payload
-- missing required fields
-- wrong data types
-- slow service
-
-## Part 1: Start with Failure Categories
-
-Use these failure categories:
-
-- validation failure
-- unavailable service
-- malformed response
+- a validation problem
+- a service outage
+- malformed data
 - missing data
-- wrong data type
-- latency and timeout
-- stale or inconsistent state
-- unauthorized access
+- an authorization issue
+- a timing issue
 
-### Workshop exercise
+If you learn to think in those terms, you become much better at designing meaningful checks.
 
-Map Testbed examples to each category:
+## Part 2: Decide What Good Failure Handling Looks Like
 
-- validation failure: `orders-api-422`
-- malformed response: `schema-corruption-products`
-- missing data: `inventory-empty`
-- unauthorized access: `auth-expired`
-- latency: `admin-slow`
+When the system fails, the tester still needs an expectation.
 
-This helps you stop thinking only in terms of screens and start thinking in terms of failure classes.
+For example, if order creation fails, the app should not crash or silently lose the basket. If products fail to load, the app should show a useful error or empty state. If login is rejected, the user should understand what happened.
 
-## Part 2: Decide Expected Behavior
+Negative testing is not just “make it fail”. It is “make it fail and see whether it fails well”.
 
-A negative test is only strong if you know what “good failure handling” looks like.
+## Part 3: Use Presets and Faults Deliberately
 
-For each scenario, ask:
-
-- should the user see an error message
-- should the page stay usable
-- should a retry be possible
-- should existing data remain visible
-- should the operation stop cleanly
-
-### Example
-
-Scenario: products API returns malformed JSON
-
-Good outcome:
-
-- page does not crash
-- user sees a readable error
-- no fake success state is shown
-
-Bad outcome:
-
-- blank screen
-- endless spinner
-- broken layout with no explanation
-
-### Workshop exercise
-
-Choose three negative scenarios and write the expected behavior before you run them.
-
-## Part 3: Use Presets First
-
-Presets are the quickest way to create repeatable negative states.
-
-Recommended presets:
+Try working with scenarios like:
 
 - `auth-expired`
 - `inventory-empty`
 - `orders-api-422`
-- `admin-slow`
 - `schema-corruption-products`
 
-### Workshop exercise
+Do not turn on many things at once. Use one failure condition at a time so you can understand what effect it has.
 
-For each preset:
+As you test, ask:
 
-1. apply it
-2. perform the affected user flow
-3. record what the user sees
-4. decide whether the app behavior is acceptable
+- what changed in the system
+- what stayed normal
+- what the user can still do
+- whether the failure is being handled clearly
 
-Ask:
+## Part 4: Connect UI and API Thinking
 
-- is the failure visible
-- is the message understandable
-- does the system recover
-- does the failure stay contained
+One of the best habits you can build here is to connect the browser symptom to the API cause.
 
-## Part 4: Go Deeper with the Fault Matrix
+If the page shows an error, look at the request trace. If the service returned a malformed response, think about how the UI should present that. If the order API rejects a request, think about what message the browser should show and what should happen to the basket.
 
-Presets are useful, but the fault matrix lets you create targeted negative conditions.
+This is where manual testing starts to become better automation thinking.
 
-You can vary:
+## Final Thought
 
-- endpoint
-- status code
-- response mode
-- latency
-- message
+Happy-path testing tells you whether the system works when conditions are ideal.
 
-### Good workshop progression
+Negative testing tells you whether the system stays understandable, safe, and usable when conditions are not ideal.
 
-Start simple:
-
-- `http-error`
-
-Then move to resilience-oriented failures:
-
-- `malformed-json`
-- `missing-fields`
-- `wrong-types`
-- `empty-body`
-- `stale-success`
-
-### Workshop exercise
-
-Create these tests manually:
-
-1. `shop.products` with `503` and `http-error`
-2. `shop.products` with `200` and `malformed-json`
-3. `orders.create` with `422` and `http-error`
-4. `admin.overview` with extra latency
-
-Compare the user experience in each case.
-
-## Part 5: Negative UI Testing Ideas
-
-When testing the browser app, focus on:
-
-- readable error states
-- no unexpected crashes
-- correct blocked actions
-- no false success
-- preserved user context where appropriate
-
-### Example checks
-
-For `inventory-empty`:
-
-- products page should show empty state
-- basket should not claim products exist
-
-For `orders-api-422`:
-
-- checkout should fail clearly
-- order confirmation should not appear
-- order should not be visible in history as successful
-
-For `auth-expired`:
-
-- login should reject credentials
-- protected routes should not silently grant access
-
-## Part 6: Negative API Testing Ideas
-
-Negative API testing is often faster and more precise than UI-only failure testing.
-
-Use Postman or direct HTTP clients to verify:
-
-- status codes
-- error messages
-- schema behavior
-- malformed bodies
-- correlation headers
-
-### Workshop exercise
-
-Run these API checks:
-
-1. apply `orders-api-422`
-2. send `POST /api/orders`
-3. verify `422`
-4. inspect the returned error
-5. inspect the trace entry
-
-Then:
-
-1. apply `schema-corruption-products`
-2. run `GET /api/shop/products`
-3. inspect what Postman receives
-
-This shows why API-level negative testing helps explain UI behavior.
-
-## Part 7: Design Better Negative Test Cases
-
-Weak negative tests:
-
-- “Try bad input.”
-- “See what happens.”
-
-Stronger negative tests:
-
-- “With `orders.create` forced to return `422`, checkout should show a readable error and should not create a visible order.”
-- “With malformed JSON returned by `shop.products`, the page should render an error state instead of a blank screen.”
-
-### Test case template
-
-```text
-Scenario:
-
-Setup:
-
-Action:
-
-Expected UI result:
-
-Expected API result:
-
-Expected trace evidence:
-```
-
-## Part 8: Use Tracing as Evidence
-
-Negative testing should not stop at visual symptoms.
-
-Use the trace viewer to answer:
-
-- which request failed
-- how it failed
-- whether a fault was injected
-- whether the UI matched the real backend response
-
-### Workshop exercise
-
-Run a negative scenario and document:
-
-- what the user saw
-- what the API returned
-- which trace entry proves it
-
-That gives you a complete failure story.
-
-## Part 9: Common Negative Testing Gaps
-
-Avoid these:
-
-- testing only one error code
-- assuming all failures behave the same
-- checking only the UI text without checking the API cause
-- missing the difference between empty data and broken data
-- failing to verify that success is not shown accidentally
-
-Examples:
-
-- empty product list is not the same as products API failure
-- malformed JSON is not the same as `503`
-- slow service is not the same as unavailable service
-
-## Part 10: Practice Matrix
-
-Use this matrix to plan negative coverage:
-
-| Area | Failure | Setup | Expected result |
-|---|---|---|---|
-| Login | unauthorized | `auth-expired` | login blocked with readable message |
-| Shop | empty data | `inventory-empty` | empty state shown |
-| Shop | corrupt data | `schema-corruption-products` | readable error, no crash |
-| Checkout | validation failure | `orders-api-422` | no success, clear error |
-| Admin | latency | `admin-slow` | delayed but stable admin view |
-
-## Part 11: Practice Challenges
-
-1. Compare the behavior of `inventory-empty` versus a direct `503` on `shop.products`.
-2. Compare malformed JSON versus missing fields on the same endpoint.
-3. Design one Playwright test and one Postman test for the same negative scenario.
-4. Decide which negative scenarios must run in regression and which are exploratory only.
-
-## Part 12: Final Takeaway
-
-Negative testing is not about trying random bad things.
-
-It is about:
-
-- choosing meaningful failure modes
-- predicting correct failure behavior
-- proving the app fails safely
-- collecting evidence from both UI and API layers
-
-That is how testers build confidence in resilience, not just functionality.
+That is why it matters so much.

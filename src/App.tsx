@@ -891,12 +891,40 @@ function useCartProducts() {
     setStoredCart(cart)
   }, [cart])
 
+  useEffect(() => {
+    setCart((current) => {
+      const nextCart: CartItem[] = []
+
+      for (const item of current) {
+        const product = products.find((candidate) => candidate.id === item.productId)
+        if (!product) continue
+
+        const quantity = Math.min(item.quantity, Math.max(product.stock, 0))
+        if (quantity > 0) {
+          nextCart.push({
+            ...item,
+            quantity,
+          })
+        }
+      }
+
+      return nextCart
+    })
+  }, [products])
+
   function addToCart(productId: string) {
     setCart((current) => {
+      const product = products.find((candidate) => candidate.id === productId)
+      if (!product || product.stock <= 0) {
+        return current
+      }
+
       const match = current.find((item) => item.productId === productId)
       if (match) {
         return current.map((item) =>
-          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
+          item.productId === productId
+            ? { ...item, quantity: Math.min(item.quantity + 1, product.stock) }
+            : item,
         )
       }
       return [...current, { productId, quantity: 1 }]
@@ -904,11 +932,18 @@ function useCartProducts() {
   }
 
   function updateQuantity(productId: string, quantity: number) {
-    setCart((current) =>
-      current
-        .map((item) => (item.productId === productId ? { ...item, quantity } : item))
-        .filter((item) => item.quantity > 0),
-    )
+    setCart((current) => {
+      const product = products.find((candidate) => candidate.id === productId)
+      const maxQuantity = Math.max(product?.stock ?? 0, 0)
+
+      return current
+        .map((item) =>
+          item.productId === productId
+            ? { ...item, quantity: Math.min(Math.max(quantity, 0), maxQuantity) }
+            : item,
+        )
+        .filter((item) => item.quantity > 0)
+    })
   }
 
   return { products, loading, error, cart, addToCart, updateQuantity, reload: loadProducts, setCart }
@@ -1047,13 +1082,13 @@ function ProductGrid({
                   </div>
                   <button
                     type="button"
-                    disabled={breakModes.disableAddToCart}
+                    disabled={breakModes.disableAddToCart || product.stock <= 0}
                     onClick={() => onAddToCart(product.id)}
                     className="btn-primary whitespace-nowrap rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-400"
                     data-testid={testId(`add-to-cart-${product.id}`)}
                     aria-label={`${contentLabels.addToCart} ${product.name}`}
                   >
-                    {contentLabels.addToCart}
+                    {product.stock <= 0 ? 'Out of stock' : contentLabels.addToCart}
                   </button>
                 </div>
               </div>
