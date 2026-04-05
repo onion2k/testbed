@@ -170,3 +170,42 @@ html.theme-dark body {
 .theme-dark .shadow-sm {
   box-shadow: 0 10px 30px rgba(2, 6, 23, 0.28) !important;
 }
+
+.theme-dark .theme-toggle {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+.theme-dark .theme-toggle:hover {
+  background-color: #334155 !important;
+}
+
+.theme-dark .theme-toggle-label {
+  color: #e2e8f0 !important;
+}
+
+.theme-dark .theme-toggle-track {
+  background-color: #475569 !important;
+}
+
+.theme-dark .theme-toggle[aria-checked='true'] .theme-toggle-track {
+  background-color: #38bdf8 !important;
+}
+
+.theme-dark .theme-toggle-thumb {
+  background-color: #ffffff !important;
+}
+
+.theme-dark .site-footer {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: #334155 !important;
+}
+
+.theme-dark .site-footer-link {
+  color: #e2e8f0 !important;
+}
+
+.theme-dark .site-footer-link:hover {
+  color: #f8fafc !important;
+}

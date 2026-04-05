@@ -60,6 +60,7 @@ import {
   setStoredWorkshopProgress,
   setStoredThemeMode,
 } from './lib/storage'
+import { articleEntries, defaultArticleSlug } from './lib/articles'
 import { defaultWorkshopSlug, workshopEntries } from './lib/workshops'
 import type {
   AdminSnapshot,
@@ -140,7 +141,7 @@ function renderInlineMarkdown(text: string) {
   })
 }
 
-function MarkdownDocument({ markdown }: { markdown: string }) {
+function MarkdownDocument({ markdown, hideFirstHeading = false }: { markdown: string; hideFirstHeading?: boolean }) {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
   const blocks: ReactNode[] = []
   let index = 0
@@ -231,6 +232,10 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
       const level = line.match(/^#+/)?.[0].length ?? 1
       const text = line.replace(/^#{1,6}\s+/, '')
       const isFirstBlock = blocks.length === 0
+      if (hideFirstHeading && isFirstBlock) {
+        index += 1
+        continue
+      }
       const className =
         {
           1: 'text-4xl font-semibold tracking-tight text-slate-900',
@@ -497,12 +502,12 @@ function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => vo
       aria-checked={isDark}
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
       onClick={onToggle}
-      className="inline-flex items-center gap-3 rounded-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-stone-100"
+      className="theme-toggle inline-flex items-center gap-3 rounded-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-stone-100"
     >
-      <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{isDark ? 'Dark' : 'Light'}</span>
-      <span className={`relative h-6 w-11 rounded-full transition ${isDark ? 'bg-slate-900' : 'bg-stone-300'}`}>
+      <span className="theme-toggle-label text-xs uppercase tracking-[0.18em] text-slate-500">{isDark ? 'Dark' : 'Light'}</span>
+      <span className={`theme-toggle-track relative h-6 w-11 rounded-full transition ${isDark ? 'bg-slate-900' : 'bg-stone-300'}`}>
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-5' : 'translate-x-0.5'}`}
+          className={`theme-toggle-thumb absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-5' : 'translate-x-0'}`}
         />
       </span>
     </button>
@@ -519,7 +524,6 @@ function AppShell() {
     ['/shop', 'Shop'],
     ['/vip', 'VIP'],
     ['/orders', 'Orders'],
-    ['/login', user ? 'Switch user' : 'Login'],
   ]
 
   useEffect(() => {
@@ -630,7 +634,16 @@ function AppShell() {
                 </button>
               </div>
             ) : (
-              <span>Not signed in</span>
+              <div className="flex flex-wrap items-center gap-3 whitespace-nowrap">
+                <span>Not signed in</span>
+                <Link
+                  to="/login"
+                  className="btn-primary rounded-full bg-slate-900 px-3 py-1.5 font-medium text-white"
+                  data-testid={testId('login-button')}
+                >
+                  Login
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -677,6 +690,22 @@ function AppShell() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <footer className="site-footer border-t border-stone-300 bg-white/80">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-slate-600 lg:flex-row lg:items-center lg:justify-between">
+          <p>Testbed is a practice environment for learning QA testing and test automation.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to="/" className="site-footer-link font-medium text-slate-700 hover:text-slate-900">
+              Home
+            </Link>
+            <Link to="/shop" className="site-footer-link font-medium text-slate-700 hover:text-slate-900">
+              Shop
+            </Link>
+            <Link to="/orders" className="site-footer-link font-medium text-slate-700 hover:text-slate-900">
+              Orders
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -1557,8 +1586,9 @@ function DesktopRoute({ theme = 'light', onToggleTheme = () => {} }: { theme?: T
 function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggleTheme: () => void }) {
   const initialWorkshopLastView = getStoredWorkshopLastView()
   const [tab, setTab] = useState<
-    'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'data-folder' | 'server'
+    'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'articles' | 'data-folder' | 'server'
   >('workshops')
+  const [selectedArticleSlug, setSelectedArticleSlug] = useState(defaultArticleSlug)
   const [selectedWorkshopSlug, setSelectedWorkshopSlug] = useState(initialWorkshopLastView?.workshopSlug ?? defaultWorkshopSlug)
   const [selectedWorkshopPartSlug, setSelectedWorkshopPartSlug] = useState(initialWorkshopLastView?.partSlug ?? workshopEntries[0]?.parts[0]?.slug ?? 'overview')
   const [workshopResetVersion, setWorkshopResetVersion] = useState(0)
@@ -1628,6 +1658,15 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       }, {}),
     [],
   )
+  const groupedArticles = useMemo(
+    () =>
+      articleEntries.reduce<Record<string, typeof articleEntries>>((groups, article) => {
+        groups[article.category] = [...(groups[article.category] ?? []), article]
+        return groups
+      }, {}),
+    [],
+  )
+  const selectedArticle = articleEntries.find((entry) => entry.slug === selectedArticleSlug) ?? articleEntries[0] ?? null
   const workshopContentRef = useRef<HTMLDivElement | null>(null)
 
   function isWorkshopComplete(workshopSlug: string) {
@@ -2062,7 +2101,6 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
     '/checkout': 'Multi-step checkout and order confirmation.',
     '/orders': 'Persisted order history.',
     '/vip': 'Premium route for VIP-only products.',
-    '/desktop': 'Desktop admin shell for runtime controls.',
     '/reset': 'Clears local browser state for a fresh run.',
   }
 
@@ -2088,7 +2126,10 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          {([['workshops', 'Workshops']] as const).map(([value, label]) => (
+          {([
+            ['workshops', 'Workshops'],
+            ['articles', 'Articles'],
+          ] as const).map(([value, label]) => (
             <button
               key={value}
               type="button"
@@ -2123,7 +2164,7 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
         </div>
       </div>
 
-      <div className={`min-h-0 flex-1 ${tab === 'workshops' ? 'overflow-hidden' : 'overflow-y-auto pr-1'}`}>
+      <div className={`min-h-0 flex-1 ${tab === 'workshops' || tab === 'articles' ? 'overflow-hidden' : 'overflow-y-auto pr-1'}`}>
       {tab === 'dashboard' ? (
         <div className="grid gap-4 xl:grid-cols-2">
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
@@ -2159,7 +2200,9 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
             <h2 className="text-2xl font-semibold">Routes</h2>
             <div className="mt-4 space-y-2">
-              {demoConfig.routes.map((route) => (
+              {demoConfig.routes
+                .filter((route) => route.path !== '/desktop')
+                .map((route) => (
                 <div key={route.path} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -2802,6 +2845,77 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                 </section>
                 )
               })() : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {tab === 'articles' && selectedArticle ? (
+        <div className="grid h-full min-h-0 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+            <div className="shrink-0">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Article Library</p>
+              <h2 className="mt-3 text-3xl font-semibold">Tester Reading</h2>
+              <p className="mt-3 text-sm text-slate-600">
+                Short reads for testers who want clearer judgement, calmer investigation, and stronger automation habits.
+              </p>
+            </div>
+
+            <div className="mt-5 min-h-0 space-y-5 overflow-y-auto pr-1">
+              {Object.entries(groupedArticles).map(([category, entries]) => (
+                <section key={category}>
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{category}</h3>
+                  <div className="mt-3 space-y-2">
+                    {entries.map((article) => {
+                      const isActive = article.slug === selectedArticle.slug
+
+                      return (
+                        <button
+                          key={article.slug}
+                          type="button"
+                          onClick={() => setSelectedArticleSlug(article.slug)}
+                          className={`block w-full rounded-[1.5rem] border px-4 py-3 text-left transition ${
+                            isActive
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-stone-200 bg-stone-50 text-slate-700 hover:border-stone-300 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="font-semibold">{article.title}</p>
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                                isActive ? 'bg-white/15 text-slate-100' : 'bg-stone-200 text-stone-600'
+                              }`}
+                            >
+                              {article.readingLength}
+                            </span>
+                          </div>
+                          <p className={`mt-2 text-sm ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>{article.summary}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </aside>
+
+          <section className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm lg:p-8">
+            <div className="shrink-0 rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{selectedArticle.category}</p>
+                  <h2 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">{selectedArticle.title}</h2>
+                  <p className="mt-3 max-w-3xl text-slate-600">{selectedArticle.summary}</p>
+                </div>
+                <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-slate-600">
+                  {selectedArticle.readingLength}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 min-h-0 overflow-y-auto pr-2">
+              <MarkdownDocument markdown={selectedArticle.markdown} hideFirstHeading />
             </div>
           </section>
         </div>
