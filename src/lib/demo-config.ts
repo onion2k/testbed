@@ -16,7 +16,7 @@ function buildContentLabels(nextBreakModes: BreakModes) {
     shopTitle: nextBreakModes.contentChange ? 'Browse Inventory' : 'Shop the catalog',
     vipTitle: nextBreakModes.contentChange ? 'Private Access Lounge' : 'VIP-only collection',
     checkoutTitle: nextBreakModes.contentChange ? 'Finalize your order' : 'Checkout journey',
-    addToCart: nextBreakModes.contentChange ? 'Queue item' : 'Add to basket',
+    addToCart: nextBreakModes.contentChange ? 'Buy' : 'Add to basket',
     basketTitle: nextBreakModes.contentChange ? 'Current Selection' : 'Basket summary',
   }
 }
