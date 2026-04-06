@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 :root {
+  --surface-base: #ffffff;
+  --surface-muted: #f5f5f4;
+  --surface-subtle: #fafaf9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-subtle: #d6d3d1;
+  --motion-fast: 140ms;
+  --motion-base: 180ms;
   font-family:
     "IBM Plex Sans", "Segoe UI", sans-serif;
   color: #0f172a;
@@ -30,14 +38,45 @@ body {
     linear-gradient(180deg, #f8fafc 0%, #f5f5f4 100%);
   color: #0f172a;
   transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    background-image 180ms ease;
+    background-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    background-image var(--motion-base) ease;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea,
+a {
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+}
+
+button:not(:disabled):hover,
+a:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  transform: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.7);
+  outline-offset: 2px;
 }
 
 .btn-primary,
@@ -73,6 +112,12 @@ html.theme-dark {
 }
 
 html.theme-dark body {
+  --surface-base: #0f172a;
+  --surface-muted: #020617;
+  --surface-subtle: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --border-subtle: #334155;
   background:
     radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
     linear-gradient(180deg, #020617 0%, #0f172a 100%);

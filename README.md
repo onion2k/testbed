@@ -1,62 +1,89 @@
 # Testbed
 
-Standalone QA testbed built with React, TypeScript, Tailwind, a local JSON-backed HTTP server, and an Electron wrapper.
+Testbed is a local QA learning environment built with React, TypeScript, Electron, and a JSON-backed HTTP server. It is designed to help manual testers move into automation by giving them a realistic website to test, a desktop learning shell, controllable failure modes, generated Postman assets, and a growing library of workshops and articles.
 
-## Modes
+## What Lives Where
 
-- `npm run dev`: starts the standalone localhost server in development mode and serves the web UI plus APIs
-- `npm run preview`: serves the built web app and APIs from the standalone server
-- `npm run dev:desktop`: launches the Electron desktop app shell
-- `npm run dist:desktop`: builds the web assets and packages the Electron app
+The product has three main parts. The browser app is the system under test. The desktop app is the training and control surface. The local server provides both the runtime APIs used by the website and the admin/test-control APIs used by the desktop shell.
 
-## Architecture
+- `src/`: React frontend shared by the browser app and Electron window
+- `server/`: local HTTP server, runtime JSON handling, API routes, faults, traces, and Postman generation
+- `electron/`: desktop shell that selects a data folder, starts the server, and opens the desktop route
+- `docs/`: workshops, articles, and contributor documentation
 
-- `server/`: standalone localhost server for the web UI and runtime APIs
-- `electron/`: desktop shell that chooses a data folder, starts the server, and opens a BrowserWindow
-- `src/`: React frontend used by both browser sessions and the Electron window
+## Running the App
 
-The server binds to loopback and is intended to be reachable from:
+- `npm run dev`: start the standalone localhost server and serve the website plus APIs
+- `npm run dev:desktop`: launch the Electron desktop app
+- `npm run build`: type-check and build the frontend
+- `npm run preview`: serve the built app through the standalone server
+- `npm run dist:desktop`: package the Electron app
 
-- an external browser
-- an E2E test runner
-- the Electron desktop app window
+## Testing
+
+- `npm test`: run the Vitest suite
+- `npm run test:watch`: run Vitest in watch mode
+- `npm run test:coverage`: run Vitest with coverage output
+- `npm run test:e2e`: run Playwright end-to-end smoke tests
+
+The automated test strategy is layered:
+
+- unit tests for parsing, validation, formatting, and route helpers
+- component tests for shared UI such as markdown rendering
+- server integration tests for health and API behavior
+- Playwright smoke coverage for the learner-facing website
+
+## Architecture Summary
+
+The browser app and desktop app share one React codebase. The browser route set focuses on the shopping experience used for testing practice. The `/desktop` route exposes a training-focused shell for workshops, articles, traces, presets, Postman assets, and runtime controls.
+
+The server owns the runtime truth. Immutable defaults live in `src/config` and `src/data`, while mutable runtime JSON is created in a writable data folder. The server also generates admin auth tokens, request traces, and Postman collections from shared route metadata.
+
+More detailed architecture notes live in:
+
+- [Architecture Guide](./docs/architecture.md)
+- [UI and Theming Guide](./docs/ui-theming.md)
+- [Testing Guide](./docs/testing.md)
+- [Content Authoring Guide](./docs/content-authoring.md)
 
 ## Runtime Data
 
-Source JSON under `src/config` and `src/data` is treated as immutable defaults.
-
-Runtime JSON is created in a writable data directory:
+Runtime JSON is created outside the bundle so the app can be reset, mutated, and reused safely:
 
 - `users.json`
 - `break-modes.json`
 - `products.json`
 - `orders.json`
 - `app-state.json`
+- `test-controls.json`
 
-Standalone server mode uses `.testbed-runtime/standalone` by default.
-
-The Electron app prompts for a user-chosen data folder on first run and stores that choice in the Electron user-data area.
+Standalone mode uses `.testbed-runtime/standalone` by default. The Electron app prompts for a writable data folder on first run and reuses it later.
 
 ## Public APIs
 
-Runtime/bootstrap:
+Website/runtime APIs:
 
+- `GET /api/health`
 - `GET /api/runtime/bootstrap`
 - `POST /api/auth/login`
-
-Test controls:
-
-- `GET /api/test-controls/state`
-- `POST /api/test-controls/break-modes`
-- `POST /api/test-controls/reset`
-
-Shop/orders:
-
 - `GET /api/shop/products`
 - `GET /api/orders`
 - `POST /api/orders`
 
-Admin/runtime management:
+Test-control APIs:
+
+- `GET /api/test-controls/state`
+- `POST /api/test-controls/break-modes`
+- `POST /api/test-controls/reset`
+- `GET /api/test-controls/config`
+- `POST /api/test-controls/config`
+- `GET /api/test-controls/presets`
+- `POST /api/test-controls/presets/:presetId/apply`
+- `POST /api/test-controls/tracing`
+- `GET /api/test-controls/traces`
+- `DELETE /api/test-controls/traces`
+
+Admin APIs:
 
 - `GET /api/admin/overview`
 - `GET /api/admin/users`
@@ -67,64 +94,13 @@ Admin/runtime management:
 - `PATCH /api/admin/products/:id`
 - `POST /api/admin/reset-runtime`
 
-## Browser UI
+Admin APIs require `Authorization: Bearer <token>`. The desktop app sends this automatically. The Postman desktop tab exposes the generated token for learning purposes.
 
-The served browser app keeps the existing QA surface:
+## Learning Content
 
-- login
-- shop
-- checkout
-- orders
-- VIP area
-- route directory
-- selector/test-id coverage
-- break-mode-driven failures
+Testbed includes two embedded content types:
 
-The browser-facing `/admin` route now points users to the desktop-only admin shell.
+- workshops: longer, guided learning tracks with gated progress and quizzes
+- articles: shorter supporting reads that deepen tester judgement and automation thinking
 
-## Desktop UI
-
-The Electron window opens `/desktop` and exposes a desktop-only admin shell with:
-
-- dashboard summary
-- user CRUD
-- break-mode toggles
-- product visibility/stock controls
-- order inspection
-- chosen data-folder controls
-- server URL / port visibility
-
-## Notes
-
-- Browser-local session and cart state are still cleared by `/reset`
-- Runtime JSON state is reset through desktop admin actions or the test-control/admin APIs
-- Packaging config is defined in `package.json` under `build`
-
-## Workshop
-
-- [Introduction to Testbed](./docs/introduction-to-testbed-workshop.md)
-- [Manual QA to Automation Workshop](./docs/manual-qa-to-automation-workshop.md)
-- [Running Tests Locally Workshop](./docs/running-tests-locally-workshop.md)
-- [What To Do If a Test Fails Workshop](./docs/what-to-do-if-a-test-fails-workshop.md)
-- [Using Playwright Workshop](./docs/using-playwright-workshop.md)
-- [In-Depth API Testing Using Postman Workshop](./docs/indepth-api-testing-using-postman-workshop.md)
-- [Using Git to Save Tests Workshop](./docs/using-git-to-save-tests-workshop.md)
-- [Using AI to Generate Tests Workshop](./docs/using-ai-to-generate-tests-workshop.md)
-- [BrowserStack Automate Workshop](./docs/browserstack-automate-workshop.md)
-- [What Is CI/CD Workshop](./docs/what-is-cicd-workshop.md)
-- [Repairing Tests Workshop](./docs/repairing-tests-workshop.md)
-- [Shift-Left Test Planning Workshop](./docs/shift-left-test-planning-workshop.md)
-- [Bug Investigation Workshop](./docs/bug-investigation-workshop.md)
-- [Negative Testing Workshop](./docs/negative-testing-workshop.md)
-- [Flaky Test Reduction Workshop](./docs/flaky-test-reduction-workshop.md)
-- [Test Case Design Workshop](./docs/test-case-design-workshop.md)
-- [Selectors and Testability Workshop](./docs/selectors-and-testability-workshop.md)
-- [Better Automation with Page Object Models Workshop](./docs/page-object-models-workshop.md)
-- [Regression Strategy Workshop](./docs/regression-strategy-workshop.md)
-- [Risk-Based Testing Workshop](./docs/risk-based-testing-workshop.md)
-- [API Contract Testing Workshop](./docs/api-contract-testing-workshop.md)
-- [Exploratory Testing to Automation Workshop](./docs/exploratory-testing-to-automation-workshop.md)
-- [Accessibility Testing Workshop](./docs/accessibility-testing-workshop.md)
-- [Test Data Management Workshop](./docs/test-data-management-workshop.md)
-- [Release Readiness Workshop](./docs/release-readiness-workshop.md)
-- [Workshop Quiz Authoring](./docs/workshop-quiz-authoring.md)
+Contributor guidance for adding new content lives in [Content Authoring Guide](./docs/content-authoring.md).

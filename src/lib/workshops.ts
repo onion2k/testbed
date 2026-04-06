@@ -1,3 +1,4 @@
+import { buildWorkshopParts } from '../content/workshop-parser'
 import introductionToTestbedWorkshop from '../../docs/introduction-to-testbed-workshop.md?raw'
 import accessibilityTestingWorkshop from '../../docs/accessibility-testing-workshop.md?raw'
 import apiContractTestingWorkshop from '../../docs/api-contract-testing-workshop.md?raw'
@@ -29,6 +30,12 @@ export interface WorkshopEntry {
   title: string
   category: string
   summary: string
+  estimatedEffort: string
+  launchTarget?: {
+    type: 'route' | 'desktop-tab'
+    value: string
+    label: string
+  }
   markdown: string
   parts: WorkshopPart[]
 }
@@ -53,139 +60,6 @@ export interface WorkshopQuizOption {
   correct: boolean
 }
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function buildWorkshopParts(markdown: string) {
-  const normalized = markdown.replace(/\r\n/g, '\n').trim()
-  const lines = normalized.split('\n')
-  const sections: WorkshopPart[] = []
-  let currentTitle: string | null = null
-  let currentLines: string[] = []
-
-  function flushCurrentSection() {
-    if (!currentTitle) return
-    const partMarkdown = currentLines.join('\n').trim()
-    const { markdown: contentMarkdown, quiz } = extractQuizGate(partMarkdown)
-
-    sections.push({
-      slug: slugify(currentTitle),
-      title: currentTitle,
-      markdown: contentMarkdown,
-      quiz,
-    })
-  }
-
-  for (const line of lines) {
-    const headingMatch = line.match(/^(#{1,2})\s+(.*)$/)
-
-    if (headingMatch) {
-      flushCurrentSection()
-      currentTitle = headingMatch[2].trim()
-      currentLines = [line]
-      continue
-    }
-
-    if (!currentTitle) continue
-    currentLines.push(line)
-  }
-
-  flushCurrentSection()
-  return sections
-}
-
-function extractQuizGate(markdown: string) {
-  const match = markdown.match(/```quiz\s*\n([\s\S]*?)```/)
-
-  if (!match) {
-    return {
-      markdown,
-      quiz: null,
-    }
-  }
-
-  return {
-    markdown: markdown.replace(match[0], '').replace(/\n{3,}/g, '\n\n').trim(),
-    quiz: parseQuizGate(match[1]),
-  }
-}
-
-function parseQuizGate(content: string): WorkshopQuizGate | null {
-  const lines = content.replace(/\r\n/g, '\n').split('\n')
-  let id = ''
-  let question = ''
-  let passCondition: 'all' = 'all'
-  const options: WorkshopQuizOption[] = []
-  let currentOption: WorkshopQuizOption | null = null
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim()
-    if (!line) continue
-
-    const idMatch = line.match(/^id:\s*(.+)$/)
-    if (idMatch && !currentOption) {
-      id = idMatch[1].trim()
-      continue
-    }
-
-    const questionMatch = line.match(/^question:\s*(.+)$/)
-    if (questionMatch) {
-      question = questionMatch[1].trim()
-      continue
-    }
-
-    const passConditionMatch = line.match(/^passCondition:\s*(.+)$/)
-    if (passConditionMatch) {
-      passCondition = 'all'
-      continue
-    }
-
-    const optionIdMatch = line.match(/^-+\s*id:\s*(.+)$/)
-    if (optionIdMatch) {
-      if (currentOption) {
-        options.push(currentOption)
-      }
-      currentOption = {
-        id: optionIdMatch[1].trim(),
-        label: '',
-        correct: false,
-      }
-      continue
-    }
-
-    const optionLabelMatch = line.match(/^label:\s*(.+)$/)
-    if (optionLabelMatch && currentOption) {
-      currentOption.label = optionLabelMatch[1].trim()
-      continue
-    }
-
-    const optionCorrectMatch = line.match(/^correct:\s*(true|false)$/)
-    if (optionCorrectMatch && currentOption) {
-      currentOption.correct = optionCorrectMatch[1] === 'true'
-    }
-  }
-
-  if (currentOption) {
-    options.push(currentOption)
-  }
-
-  const validOptions = options.filter((option) => option.id && option.label)
-  if (!id || !question || validOptions.length < 2 || !validOptions.some((option) => option.correct)) {
-    return null
-  }
-
-  return {
-    id,
-    question,
-    passCondition,
-    options: validOptions,
-  }
-}
-
 function createWorkshopEntry(entry: Omit<WorkshopEntry, 'parts'>): WorkshopEntry {
   return {
     ...entry,
@@ -199,6 +73,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Introduction to Testbed',
     category: 'Getting Started',
     summary: 'Learn what Testbed is, how the browser app and desktop app fit together, and where to begin.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'route', value: '/', label: 'Open Home' },
     markdown: introductionToTestbedWorkshop,
   }),
   createWorkshopEntry({
@@ -206,6 +82,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Shift-Left Test Planning',
     category: 'Planning',
     summary: 'Learn to identify risks, dependencies, and coverage before execution starts.',
+    estimatedEffort: '60-75 min',
     markdown: shiftLeftTestPlanningWorkshop,
   }),
   createWorkshopEntry({
@@ -213,6 +90,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Bug Investigation',
     category: 'Execution Skills',
     summary: 'Practise controlled reproduction, evidence gathering, and stronger defect reporting.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'desktop-tab', value: 'tracing', label: 'Open Tracing' },
     markdown: bugInvestigationWorkshop,
   }),
   createWorkshopEntry({
@@ -220,6 +99,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Negative Testing',
     category: 'Execution Skills',
     summary: 'Design and execute failure-focused testing using presets, fault modes, and API evidence.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'desktop-tab', value: 'scenarios', label: 'Open Scenarios & Faults' },
     markdown: negativeTestingWorkshop,
   }),
   createWorkshopEntry({
@@ -227,6 +108,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Test Case Design',
     category: 'Planning',
     summary: 'Use partitions, boundaries, decision tables, and state transitions to design leaner coverage.',
+    estimatedEffort: '60-75 min',
     markdown: testCaseDesignWorkshop,
   }),
   createWorkshopEntry({
@@ -234,6 +116,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Release Readiness',
     category: 'Planning',
     summary: 'Assess release confidence by coverage, blockers, residual risk, and recommendation quality.',
+    estimatedEffort: '60-75 min',
     markdown: releaseReadinessWorkshop,
   }),
   createWorkshopEntry({
@@ -241,6 +124,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Manual QA to Automation',
     category: 'Automation Foundations',
     summary: 'Start with manual exploration, then move into Playwright Codegen, better test design, and Postman API checks.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'route', value: '/shop', label: 'Open Shop' },
     markdown: manualQaToAutomationWorkshop,
   }),
   createWorkshopEntry({
@@ -248,6 +133,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Running Tests Locally',
     category: 'Automation Foundations',
     summary: 'Set up Testbed predictably and run local automation with reproducible state and clearer debugging.',
+    estimatedEffort: '60-75 min',
     markdown: runningTestsLocallyWorkshop,
   }),
   createWorkshopEntry({
@@ -255,6 +141,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'What To Do If a Test Fails',
     category: 'Automation Foundations',
     summary: 'Respond to failing automation by gathering evidence, reproducing the issue, and choosing the right fix.',
+    estimatedEffort: '60-75 min',
     markdown: whatToDoIfATestFailsWorkshop,
   }),
   createWorkshopEntry({
@@ -262,6 +149,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Using Playwright',
     category: 'Automation Foundations',
     summary: 'Learn the shape of Playwright tests, better locators, meaningful assertions, and practical browser automation.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'route', value: '/shop', label: 'Open Shop' },
     markdown: usingPlaywrightWorkshop,
   }),
   createWorkshopEntry({
@@ -269,6 +158,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Exploratory Testing to Automation',
     category: 'Automation Foundations',
     summary: 'Turn exploratory findings into repeatable Playwright and Postman coverage.',
+    estimatedEffort: '60-75 min',
     markdown: exploratoryTestingToAutomationWorkshop,
   }),
   createWorkshopEntry({
@@ -276,6 +166,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Selectors and Testability',
     category: 'Automation Quality',
     summary: 'Choose stronger locators and learn how to ask for better automation hooks.',
+    estimatedEffort: '60-75 min',
     markdown: selectorsAndTestabilityWorkshop,
   }),
   createWorkshopEntry({
@@ -283,6 +174,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Flaky Test Reduction',
     category: 'Automation Quality',
     summary: 'Reduce instability through better setup, selectors, assertions, and synchronization.',
+    estimatedEffort: '60-75 min',
     markdown: flakyTestReductionWorkshop,
   }),
   createWorkshopEntry({
@@ -290,6 +182,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Better Automation with Page Object Models',
     category: 'Automation Quality',
     summary: 'Use Page Object Models to reduce duplication without hiding intent or over-abstracting tests.',
+    estimatedEffort: '60-75 min',
     markdown: pageObjectModelsWorkshop,
   }),
   createWorkshopEntry({
@@ -297,6 +190,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Using Git to Save Tests',
     category: 'Advanced Automation Testing',
     summary: 'Learn the practical Git habits testers need to save, review, and share automation safely.',
+    estimatedEffort: '60-75 min',
     markdown: usingGitToSaveTestsWorkshop,
   }),
   createWorkshopEntry({
@@ -304,6 +198,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Using AI to Generate Tests',
     category: 'Advanced Automation Testing',
     summary: 'Use AI to speed up test drafting while still reviewing selectors, assertions, and coverage critically.',
+    estimatedEffort: '60-75 min',
     markdown: usingAiToGenerateTestsWorkshop,
   }),
   createWorkshopEntry({
@@ -311,6 +206,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'BrowserStack Automate',
     category: 'Advanced Automation Testing',
     summary: 'Learn where hosted cross-browser execution fits into an automation strategy and how to use it well.',
+    estimatedEffort: '60-75 min',
     markdown: browserStackAutomateWorkshop,
   }),
   createWorkshopEntry({
@@ -318,6 +214,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'What Is CI/CD',
     category: 'Advanced Automation Testing',
     summary: 'Understand CI/CD in testing terms and how automated checks fit into build and release pipelines.',
+    estimatedEffort: '60-75 min',
     markdown: whatIsCicdWorkshop,
   }),
   createWorkshopEntry({
@@ -325,6 +222,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Repairing Tests',
     category: 'Advanced Automation Testing',
     summary: 'Repair failing automated tests by fixing the right root cause instead of weakening the test.',
+    estimatedEffort: '60-75 min',
     markdown: repairingTestsWorkshop,
   }),
   createWorkshopEntry({
@@ -332,6 +230,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Regression Strategy',
     category: 'Planning',
     summary: 'Decide what belongs in smoke, core regression, and deeper targeted coverage.',
+    estimatedEffort: '60-75 min',
     markdown: regressionStrategyWorkshop,
   }),
   createWorkshopEntry({
@@ -339,6 +238,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Risk-Based Testing',
     category: 'Planning',
     summary: 'Prioritize testing effort using impact, likelihood, and change risk.',
+    estimatedEffort: '60-75 min',
     markdown: riskBasedTestingWorkshop,
   }),
   createWorkshopEntry({
@@ -346,6 +246,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'API Contract Testing',
     category: 'API Testing',
     summary: 'Validate response structure, error contracts, and consumer-facing API behavior.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'desktop-tab', value: 'postman', label: 'Open Postman' },
     markdown: apiContractTestingWorkshop,
   }),
   createWorkshopEntry({
@@ -353,6 +255,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'In-Depth API Testing Using Postman',
     category: 'API Testing',
     summary: 'Use Postman for chained API flows, stronger assertions, negative paths, and contract-focused checks.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'desktop-tab', value: 'postman', label: 'Open Postman' },
     markdown: indepthApiTestingUsingPostmanWorkshop,
   }),
   createWorkshopEntry({
@@ -360,6 +264,7 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Accessibility Testing',
     category: 'Quality Practices',
     summary: 'Build accessibility into mainstream testing through keyboard, label, and role-focused checks.',
+    estimatedEffort: '60-75 min',
     markdown: accessibilityTestingWorkshop,
   }),
   createWorkshopEntry({
@@ -367,6 +272,8 @@ export const workshopEntries: WorkshopEntry[] = [
     title: 'Test Data Management',
     category: 'Quality Practices',
     summary: 'Use reset, presets, and seeded data deliberately to keep test outcomes trustworthy.',
+    estimatedEffort: '60-75 min',
+    launchTarget: { type: 'desktop-tab', value: 'data-folder', label: 'Open Data Folder' },
     markdown: testDataManagementWorkshop,
   }),
 ]

@@ -11,6 +11,9 @@ import {
 } from 'react-router-dom'
 import { AuthProvider } from './auth'
 import { useAuth } from './auth-context'
+import { MarkdownDocument } from './components/markdown-document'
+import { ThemeToggle } from './components/theme-toggle'
+import { useThemeMode } from './hooks/use-theme-mode'
 import {
   breakModes,
   contentLabels,
@@ -43,24 +46,32 @@ import {
   updateProduct,
   updateUser,
 } from './lib/demo-api'
+import { articleEntries, defaultArticleSlug } from './lib/articles'
 import { qaClass, testId } from './lib/selectors'
 import {
+  getDesktopPreferences,
+  getStoredArticleLastView,
+  getStoredArticleReadProgress,
   getStoredCart,
   getStoredWorkshopLastView,
   getStoredWorkshopQuizProgress,
   getStoredWorkshopReadParts,
   getStoredWorkshopProgress,
-  getStoredThemeMode,
   resetDemoState,
   resetWorkshopProgress,
+  setDesktopPreferences,
+  setStoredArticleLastView,
+  setStoredArticleReadProgress,
   setStoredCart,
   setStoredWorkshopLastView,
   setStoredWorkshopQuizProgress,
   setStoredWorkshopReadParts,
   setStoredWorkshopProgress,
-  setStoredThemeMode,
+  updateRecentLearningItem,
 } from './lib/storage'
-import { articleEntries, defaultArticleSlug } from './lib/articles'
+import { calculateCheckoutTotals, calculateDisplayedSubtotal, currency, shuffleItems } from './lib/formatting'
+import type { ThemeMode } from './lib/theme'
+import { validateLoginForm, validateManagedUser, validatePaymentForm, validateShippingForm } from './lib/validation'
 import { defaultWorkshopSlug, workshopEntries } from './lib/workshops'
 import type {
   AdminSnapshot,
@@ -81,13 +92,6 @@ import type {
   TestControlsConfig,
 } from './types'
 
-function currency(value: number) {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(value)
-}
-
 function inputClass(hasError: boolean) {
   return `w-full rounded-2xl border px-4 py-3 outline-none transition ${
     hasError
@@ -96,242 +100,12 @@ function inputClass(hasError: boolean) {
   }`
 }
 
-function calculateDisplayedSubtotal(subtotal: number, hasBrokenCheckoutTotal: boolean) {
-  return hasBrokenCheckoutTotal ? Math.max(subtotal - 7, 0) : subtotal
-}
+function generateStrongPassword(length = 16) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*'
+  const bytes = new Uint32Array(length)
+  window.crypto.getRandomValues(bytes)
 
-function calculateCheckoutTotals(subtotal: number, hasBrokenCheckoutTotal: boolean) {
-  const shipping = 12
-  const displayedSubtotal = calculateDisplayedSubtotal(subtotal, hasBrokenCheckoutTotal)
-  const total = displayedSubtotal + shipping
-
-  return {
-    subtotal: displayedSubtotal,
-    shipping,
-    total,
-  }
-}
-
-function shuffleItems<T>(items: T[]) {
-  const next = [...items]
-
-  for (let index = next.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1))
-    const current = next[index]
-    next[index] = next[swapIndex]
-    next[swapIndex] = current
-  }
-
-  return next
-}
-
-function renderInlineMarkdown(text: string) {
-  const parts = text.split(/(`[^`]+`)/g)
-
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code key={`${part}-${index}`} className="rounded bg-stone-100 px-1.5 py-0.5 font-mono text-[0.95em] text-slate-800">
-          {part.slice(1, -1)}
-        </code>
-      )
-    }
-
-    return part
-  })
-}
-
-function MarkdownDocument({ markdown, hideFirstHeading = false }: { markdown: string; hideFirstHeading?: boolean }) {
-  const lines = markdown.replace(/\r\n/g, '\n').split('\n')
-  const blocks: ReactNode[] = []
-  let index = 0
-
-  function collectParagraph(startIndex: number) {
-    const collected: string[] = []
-    let cursor = startIndex
-
-    while (cursor < lines.length) {
-      const line = lines[cursor]
-      if (!line.trim()) break
-      if (/^#{1,6}\s/.test(line) || /^[-*]\s/.test(line) || /^\d+\.\s/.test(line) || /^```/.test(line) || /^\|/.test(line)) break
-      collected.push(line.trim())
-      cursor += 1
-    }
-
-    return {
-      text: collected.join(' '),
-      nextIndex: cursor,
-    }
-  }
-
-  function collectList(startIndex: number, ordered: boolean) {
-    const items: string[] = []
-    let cursor = startIndex
-    const pattern = ordered ? /^\d+\.\s+(.*)$/ : /^[-*]\s+(.*)$/
-
-    while (cursor < lines.length) {
-      const match = lines[cursor].match(pattern)
-      if (!match) break
-      items.push(match[1])
-      cursor += 1
-    }
-
-    return { items, nextIndex: cursor }
-  }
-
-  function collectCodeBlock(startIndex: number) {
-    const firstLine = lines[startIndex]
-    const language = firstLine.replace(/^```/, '').trim()
-    const content: string[] = []
-    let cursor = startIndex + 1
-
-    while (cursor < lines.length && !lines[cursor].startsWith('```')) {
-      content.push(lines[cursor])
-      cursor += 1
-    }
-
-    return {
-      language,
-      code: content.join('\n'),
-      nextIndex: cursor + 1,
-    }
-  }
-
-  function collectTable(startIndex: number) {
-    const tableLines: string[] = []
-    let cursor = startIndex
-
-    while (cursor < lines.length && lines[cursor].startsWith('|')) {
-      tableLines.push(lines[cursor])
-      cursor += 1
-    }
-
-    const rows = tableLines
-      .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-      .filter((row) => row.length > 0)
-
-    const [header, separator, ...body] = rows
-    const usableBody = separator?.every((cell) => /^:?-{3,}:?$/.test(cell)) ? body : [separator, ...body].filter(Boolean)
-
-    return {
-      header: header ?? [],
-      body: usableBody,
-      nextIndex: cursor,
-    }
-  }
-
-  while (index < lines.length) {
-    const line = lines[index]
-
-    if (!line.trim()) {
-      index += 1
-      continue
-    }
-
-    if (/^#{1,6}\s/.test(line)) {
-      const level = line.match(/^#+/)?.[0].length ?? 1
-      const text = line.replace(/^#{1,6}\s+/, '')
-      const isFirstBlock = blocks.length === 0
-      if (hideFirstHeading && isFirstBlock) {
-        index += 1
-        continue
-      }
-      const className =
-        {
-          1: 'text-4xl font-semibold tracking-tight text-slate-900',
-          2: `${isFirstBlock ? '' : 'mt-10 '}text-2xl font-semibold text-slate-900`,
-          3: `${isFirstBlock ? '' : 'mt-8 '}text-xl font-semibold text-slate-900`,
-          4: `${isFirstBlock ? '' : 'mt-6 '}text-lg font-semibold text-slate-900`,
-        }[level] ?? `${isFirstBlock ? '' : 'mt-6 '}text-base font-semibold text-slate-900`
-
-      blocks.push(
-        <div key={`heading-${index}`} className={className}>
-          {renderInlineMarkdown(text)}
-        </div>,
-      )
-      index += 1
-      continue
-    }
-
-    if (line.startsWith('```')) {
-      const block = collectCodeBlock(index)
-      blocks.push(
-        <pre key={`code-${index}`} className="overflow-x-auto rounded-[1.5rem] bg-slate-950 p-5 text-sm text-slate-100">
-          <code>{block.code}</code>
-        </pre>,
-      )
-      index = block.nextIndex
-      continue
-    }
-
-    if (line.startsWith('|')) {
-      const table = collectTable(index)
-      blocks.push(
-        <div key={`table-${index}`} className="overflow-x-auto rounded-[1.5rem] border border-stone-200 bg-white">
-          <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="bg-stone-100 text-slate-700">
-              <tr>
-                {table.header.map((cell, cellIndex) => (
-                  <th key={`header-${cellIndex}`} className="border-b border-stone-200 px-4 py-3 font-semibold">
-                    {renderInlineMarkdown(cell)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.body.map((row, rowIndex) => (
-                <tr key={`row-${rowIndex}`} className="border-t border-stone-200">
-                  {row.map((cell, cellIndex) => (
-                    <td key={`cell-${rowIndex}-${cellIndex}`} className="px-4 py-3 align-top text-slate-700">
-                      {renderInlineMarkdown(cell)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>,
-      )
-      index = table.nextIndex
-      continue
-    }
-
-    if (/^[-*]\s/.test(line)) {
-      const list = collectList(index, false)
-      blocks.push(
-        <ul key={`ul-${index}`} className="ml-6 list-disc space-y-2 text-slate-700">
-          {list.items.map((item, itemIndex) => (
-            <li key={`ul-item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
-          ))}
-        </ul>,
-      )
-      index = list.nextIndex
-      continue
-    }
-
-    if (/^\d+\.\s/.test(line)) {
-      const list = collectList(index, true)
-      blocks.push(
-        <ol key={`ol-${index}`} className="ml-6 list-decimal space-y-2 text-slate-700">
-          {list.items.map((item, itemIndex) => (
-            <li key={`ol-item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
-          ))}
-        </ol>,
-      )
-      index = list.nextIndex
-      continue
-    }
-
-    const paragraph = collectParagraph(index)
-    blocks.push(
-      <p key={`paragraph-${index}`} className="leading-7 text-slate-700">
-        {renderInlineMarkdown(paragraph.text)}
-      </p>,
-    )
-    index = paragraph.nextIndex
-  }
-
-  return <div className="space-y-5">{blocks}</div>
+  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join('')
 }
 
 function canAccessRole(userRole: Role, requiredRole: Role) {
@@ -340,87 +114,6 @@ function canAccessRole(userRole: Role, requiredRole: Role) {
   }
 
   return userRole === requiredRole
-}
-
-function validateLoginForm(username: string, password: string) {
-  const errors: Record<string, string> = {}
-
-  if (!username.trim()) {
-    errors.username = 'Username is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username.trim())) {
-    errors.username = 'Enter a valid email address.'
-  }
-
-  if (!password.trim()) {
-    errors.password = 'Password is required.'
-  } else if (password.trim().length < 6) {
-    errors.password = 'Password must be at least 6 characters.'
-  }
-
-  return errors
-}
-
-function validateShippingForm(shipping: ShippingDetails) {
-  const errors: Partial<Record<keyof ShippingDetails, string>> = {}
-
-  if (!shipping.fullName.trim()) errors.fullName = 'Full name is required.'
-  if (!shipping.email.trim()) {
-    errors.email = 'Email is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email.trim())) {
-    errors.email = 'Enter a valid email address.'
-  }
-  if (!shipping.address1.trim()) errors.address1 = 'Address line 1 is required.'
-  if (!shipping.city.trim()) errors.city = 'City is required.'
-  if (!shipping.postcode.trim()) {
-    errors.postcode = 'Postcode is required.'
-  } else if (shipping.postcode.trim().length < 4) {
-    errors.postcode = 'Postcode must be at least 4 characters.'
-  }
-  if (!shipping.country.trim()) errors.country = 'Country is required.'
-
-  return errors
-}
-
-function validatePaymentForm(payment: PaymentDetails) {
-  const errors: Partial<Record<keyof PaymentDetails, string>> = {}
-  const normalizedCardNumber = payment.cardNumber.replace(/\s+/g, '')
-
-  if (!payment.cardName.trim()) errors.cardName = 'Name on card is required.'
-  if (!normalizedCardNumber) {
-    errors.cardNumber = 'Card number is required.'
-  } else if (!/^\d{16}$/.test(normalizedCardNumber)) {
-    errors.cardNumber = 'Card number must contain 16 digits.'
-  }
-  if (!payment.expiry.trim()) {
-    errors.expiry = 'Expiry is required.'
-  } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(payment.expiry.trim())) {
-    errors.expiry = 'Use MM/YY format.'
-  }
-  if (!payment.cvv.trim()) {
-    errors.cvv = 'CVV is required.'
-  } else if (!/^\d{3,4}$/.test(payment.cvv.trim())) {
-    errors.cvv = 'CVV must be 3 or 4 digits.'
-  }
-
-  return errors
-}
-
-function validateManagedUser(user: DemoUser) {
-  const errors: Partial<Record<keyof DemoUser, string>> = {}
-
-  if (!user.displayName.trim()) errors.displayName = 'Display name is required.'
-  if (!user.username.trim()) {
-    errors.username = 'Username is required.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.username.trim())) {
-    errors.username = 'Enter a valid email address.'
-  }
-  if (!user.password.trim()) {
-    errors.password = 'Password is required.'
-  } else if (user.password.trim().length < 6) {
-    errors.password = 'Password must be at least 6 characters.'
-  }
-
-  return errors
 }
 
 const endpointKeys: EndpointKey[] = [
@@ -490,47 +183,17 @@ function arePresetValuesModified(config: TestControlsConfig | null, presets: Sce
 
 const isDesktop = Boolean(window.desktopBridge?.isDesktop)
 
-type ThemeMode = 'light' | 'dark'
-
-function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => void }) {
-  const isDark = theme === 'dark'
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isDark}
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-      onClick={onToggle}
-      className="theme-toggle inline-flex items-center gap-3 rounded-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-stone-100"
-    >
-      <span className="theme-toggle-label text-xs uppercase tracking-[0.18em] text-slate-500">{isDark ? 'Dark' : 'Light'}</span>
-      <span className={`theme-toggle-track relative h-6 w-11 rounded-full transition ${isDark ? 'bg-slate-900' : 'bg-stone-300'}`}>
-        <span
-          className={`theme-toggle-thumb absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-5' : 'translate-x-0'}`}
-        />
-      </span>
-    </button>
-  )
-}
-
 function AppShell() {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [, setRuntimeVersion] = useState(0)
-  const [theme, setTheme] = useState<ThemeMode>(() => getStoredThemeMode())
+  const { theme, toggleTheme } = useThemeMode()
   const navLinks = [
     ['/', 'Home'],
     ['/shop', 'Shop'],
     ['/vip', 'VIP'],
     ['/orders', 'Orders'],
   ]
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('theme-dark', theme === 'dark')
-    document.documentElement.dataset.theme = theme
-    setStoredThemeMode(theme)
-  }, [theme])
 
   useEffect(() => {
     let cancelled = false
@@ -580,7 +243,7 @@ function AppShell() {
       <div className="h-screen overflow-hidden bg-stone-100 text-slate-900">
         <main className="flex h-full min-h-0 w-full p-6">
           <Routes>
-            <Route path="/desktop" element={<DesktopRoute theme={theme} onToggleTheme={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))} />} />
+            <Route path="/desktop" element={<DesktopRoute theme={theme} onToggleTheme={toggleTheme} />} />
             <Route path="*" element={<Navigate to="/desktop" replace />} />
           </Routes>
         </main>
@@ -616,7 +279,7 @@ function AppShell() {
                 {label}
               </Link>
             ))}
-            <ThemeToggle theme={theme} onToggle={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))} />
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </nav>
           <div className="rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm">
             {user ? (
@@ -652,26 +315,12 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/shop"
-            element={
-              <ProtectedRoute role="customer">
-                <ShopPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <ProtectedRoute role="customer">
-                <CheckoutPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route
             path="/orders"
             element={
-              <ProtectedRoute role="customer">
+              <ProtectedRoute>
                 <OrdersPage />
               </ProtectedRoute>
             }
@@ -710,7 +359,7 @@ function AppShell() {
   )
 }
 
-function ProtectedRoute({ children, role }: { children: ReactNode; role: Role }) {
+function ProtectedRoute({ children, role }: { children: ReactNode; role?: Role }) {
   const { user } = useAuth()
   const location = useLocation()
 
@@ -724,7 +373,7 @@ function ProtectedRoute({ children, role }: { children: ReactNode; role: Role })
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
-  if (!canAccessRole(user.role, role)) {
+  if (role && !canAccessRole(user.role, role)) {
     return (
       <section className="rounded-3xl border border-rose-200 bg-rose-50 p-8">
         <h1 className="text-3xl font-semibold">Access denied</h1>
@@ -1361,7 +1010,10 @@ function CheckoutPage() {
   }
 
   async function placeOrder() {
-    if (!user) return
+    if (!user) {
+      setError('Sign in before placing the order so it can be saved to an account.')
+      return
+    }
 
     const shippingValidation = validateShippingForm(shipping)
     const paymentValidation = validatePaymentForm(payment)
@@ -1513,6 +1165,11 @@ function CheckoutPage() {
           ) : (
             <>
               <h2 className="text-2xl font-semibold">Review order</h2>
+              {!user ? (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  You can work through checkout without signing in. To place the order and review it later in order history, sign in first.
+                </div>
+              ) : null}
               <dl className="mt-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-600">Subtotal</dt>
@@ -1550,9 +1207,15 @@ function CheckoutPage() {
           </button>
         ) : null}
         {step === 4 && !confirmation ? (
-          <button type="button" onClick={() => void placeOrder()} className="btn-success rounded-full bg-emerald-600 px-4 py-2 font-medium text-white" disabled={submitting} data-testid={testId('place-order-button')}>
-            {submitting ? 'Submitting...' : 'Place order'}
-          </button>
+          user ? (
+            <button type="button" onClick={() => void placeOrder()} className="btn-success rounded-full bg-emerald-600 px-4 py-2 font-medium text-white" disabled={submitting} data-testid={testId('place-order-button')}>
+              {submitting ? 'Submitting...' : 'Place order'}
+            </button>
+          ) : (
+            <Link to="/login" state={{ from: { pathname: '/checkout' } }} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+              Login to place order
+            </Link>
+          )
         ) : null}
         {confirmation ? (
           <Link to="/orders" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
@@ -1584,17 +1247,28 @@ function DesktopRoute({ theme = 'light', onToggleTheme = () => {} }: { theme?: T
 }
 
 function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggleTheme: () => void }) {
+  const desktopPreferences = getDesktopPreferences()
   const initialWorkshopLastView = getStoredWorkshopLastView()
+  const initialArticleLastView = getStoredArticleLastView()
   const [tab, setTab] = useState<
     'dashboard' | 'catalog' | 'users' | 'break-modes' | 'scenarios' | 'tracing' | 'postman' | 'workshops' | 'articles' | 'data-folder' | 'server'
-  >('workshops')
-  const [selectedArticleSlug, setSelectedArticleSlug] = useState(defaultArticleSlug)
+  >(desktopPreferences.lastDesktopTab === 'articles' ? 'articles' : desktopPreferences.lastDesktopTab === 'workshops' ? 'workshops' : 'dashboard')
+  const [selectedArticleSlug, setSelectedArticleSlug] = useState(initialArticleLastView?.articleSlug ?? defaultArticleSlug)
   const [selectedWorkshopSlug, setSelectedWorkshopSlug] = useState(initialWorkshopLastView?.workshopSlug ?? defaultWorkshopSlug)
   const [selectedWorkshopPartSlug, setSelectedWorkshopPartSlug] = useState(initialWorkshopLastView?.partSlug ?? workshopEntries[0]?.parts[0]?.slug ?? 'overview')
   const [workshopResetVersion, setWorkshopResetVersion] = useState(0)
   const [workshopProgress, setWorkshopProgress] = useState<Record<string, number>>(() => getStoredWorkshopProgress())
   const [readWorkshopParts, setReadWorkshopParts] = useState<Record<string, boolean>>(() => getStoredWorkshopReadParts())
   const [workshopQuizProgress, setWorkshopQuizProgress] = useState<Record<string, boolean>>(() => getStoredWorkshopQuizProgress())
+  const [articleReadProgress, setArticleReadProgress] = useState<Record<string, boolean>>(() => getStoredArticleReadProgress())
+  const [workshopSearch, setWorkshopSearch] = useState('')
+  const [workshopCategoryFilter, setWorkshopCategoryFilter] = useState('All categories')
+  const [articleSearch, setArticleSearch] = useState('')
+  const [articleCategoryFilter, setArticleCategoryFilter] = useState('All categories')
+  const [dismissedWelcome, setDismissedWelcome] = useState(Boolean(desktopPreferences.dismissedWelcome))
+  const [recentLearningItems, setRecentLearningItems] = useState(desktopPreferences.recentLearningItems ?? [])
+  const [traceEndpointFilter, setTraceEndpointFilter] = useState('all')
+  const [traceStatusFilter, setTraceStatusFilter] = useState('all')
   const [quizSelections, setQuizSelections] = useState<Record<string, string>>({})
   const [quizFeedback, setQuizFeedback] = useState<Record<string, string | null>>({})
   const [overview, setOverview] = useState<AdminSnapshot | null>(null)
@@ -1666,8 +1340,60 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       }, {}),
     [],
   )
+  const workshopCategories = useMemo(() => ['All categories', ...Object.keys(groupedWorkshops)], [groupedWorkshops])
+  const articleCategories = useMemo(() => ['All categories', ...Object.keys(groupedArticles)], [groupedArticles])
+  const filteredWorkshops = useMemo(
+    () =>
+      workshopEntries.filter((workshop) => {
+        const matchesSearch =
+          !workshopSearch.trim() ||
+          `${workshop.title} ${workshop.summary} ${workshop.category}`.toLowerCase().includes(workshopSearch.trim().toLowerCase())
+        const matchesCategory = workshopCategoryFilter === 'All categories' || workshop.category === workshopCategoryFilter
+        return matchesSearch && matchesCategory
+      }),
+    [workshopCategoryFilter, workshopSearch],
+  )
+  const filteredArticles = useMemo(
+    () =>
+      articleEntries.filter((article) => {
+        const matchesSearch =
+          !articleSearch.trim() ||
+          `${article.title} ${article.summary} ${article.category}`.toLowerCase().includes(articleSearch.trim().toLowerCase())
+        const matchesCategory = articleCategoryFilter === 'All categories' || article.category === articleCategoryFilter
+        return matchesSearch && matchesCategory
+      }),
+    [articleCategoryFilter, articleSearch],
+  )
+  const groupedFilteredWorkshops = useMemo(
+    () =>
+      filteredWorkshops.reduce<Record<string, typeof workshopEntries>>((groups, workshop) => {
+        groups[workshop.category] = [...(groups[workshop.category] ?? []), workshop]
+        return groups
+      }, {}),
+    [filteredWorkshops],
+  )
+  const groupedFilteredArticles = useMemo(
+    () =>
+      filteredArticles.reduce<Record<string, typeof articleEntries>>((groups, article) => {
+        groups[article.category] = [...(groups[article.category] ?? []), article]
+        return groups
+      }, {}),
+    [filteredArticles],
+  )
   const selectedArticle = articleEntries.find((entry) => entry.slug === selectedArticleSlug) ?? articleEntries[0] ?? null
   const workshopContentRef = useRef<HTMLDivElement | null>(null)
+  const articleContentRef = useRef<HTMLDivElement | null>(null)
+  const filteredTraces = useMemo(
+    () =>
+      traces.filter((trace) => {
+        const matchesEndpoint = traceEndpointFilter === 'all' || trace.endpointKey === traceEndpointFilter
+        const matchesStatus = traceStatusFilter === 'all' || String(trace.responseStatus) === traceStatusFilter
+        return matchesEndpoint && matchesStatus
+      }),
+    [traceEndpointFilter, traceStatusFilter, traces],
+  )
+  const completedWorkshopCount = workshopEntries.filter((workshop) => isWorkshopComplete(workshop.slug)).length
+  const completedArticleCount = articleEntries.filter((article) => articleReadProgress[article.slug]).length
 
   function isWorkshopComplete(workshopSlug: string) {
     const workshop = workshopEntries.find((entry) => entry.slug === workshopSlug)
@@ -1730,6 +1456,34 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
     })
   }
 
+  function markArticleRead(articleSlug: string) {
+    setArticleReadProgress((current) => {
+      if (current[articleSlug]) {
+        return current
+      }
+
+      const next = {
+        ...current,
+        [articleSlug]: true,
+      }
+      setStoredArticleReadProgress(next)
+      return next
+    })
+  }
+
+  function persistDesktopPreference(update: Partial<ReturnType<typeof getDesktopPreferences>>) {
+    const next = {
+      ...getDesktopPreferences(),
+      ...update,
+    }
+    setDesktopPreferences(next)
+  }
+
+  function rememberLearningItem(item: { kind: 'workshop' | 'article'; slug: string; title: string }) {
+    updateRecentLearningItem(item)
+    setRecentLearningItems(getDesktopPreferences().recentLearningItems ?? [])
+  }
+
   function checkWorkshopPartCompletion() {
     const content = workshopContentRef.current
     if (!content || !selectedWorkshop || !selectedWorkshopPartKey || selectedWorkshopPartIndex < 0) return
@@ -1742,6 +1496,18 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       if (isSelectedWorkshopQuizPassed && selectedWorkshopPartIndex < selectedWorkshop.parts.length - 1) {
         updateWorkshopProgress(selectedWorkshop.slug, selectedWorkshopPartIndex + 1)
       }
+    }
+  }
+
+  function checkArticleCompletion() {
+    const content = articleContentRef.current
+    if (!content || !selectedArticle) return
+
+    const isAtBottom = content.scrollTop + content.clientHeight >= content.scrollHeight - 24
+    const fitsInView = content.scrollHeight <= content.clientHeight + 24
+
+    if (isAtBottom || fitsInView) {
+      markArticleRead(selectedArticle.slug)
     }
   }
 
@@ -1809,7 +1575,28 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       workshopSlug: selectedWorkshop.slug,
       partSlug: selectedWorkshopPart.slug,
     })
+    rememberLearningItem({
+      kind: 'workshop',
+      slug: selectedWorkshop.slug,
+      title: selectedWorkshop.title,
+    })
   }, [selectedWorkshop?.slug, selectedWorkshopPart?.slug])
+
+  useEffect(() => {
+    if (!selectedArticle) return
+    setStoredArticleLastView({
+      articleSlug: selectedArticle.slug,
+    })
+    rememberLearningItem({
+      kind: 'article',
+      slug: selectedArticle.slug,
+      title: selectedArticle.title,
+    })
+  }, [selectedArticle?.slug])
+
+  useEffect(() => {
+    persistDesktopPreference({ lastDesktopTab: tab })
+  }, [tab])
 
   useEffect(() => {
     const content = workshopContentRef.current
@@ -1837,8 +1624,34 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
     maybeUnlockWorkshopPart()
   }, [selectedWorkshop?.slug, selectedWorkshopPartIndex, isSelectedWorkshopPartRead, isSelectedWorkshopQuizPassed])
 
+  useEffect(() => {
+    const content = articleContentRef.current
+    if (!content || !selectedArticle) return
+
+    content.scrollTop = 0
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      checkArticleCompletion()
+    })
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkArticleCompletion()
+    })
+
+    resizeObserver.observe(content)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+      resizeObserver.disconnect()
+    }
+  }, [selectedArticle?.slug])
+
   function handleWorkshopContentScroll() {
     checkWorkshopPartCompletion()
+  }
+
+  function handleArticleContentScroll() {
+    checkArticleCompletion()
   }
 
   async function loadDesktopData(options?: { silent?: boolean }) {
@@ -2059,10 +1872,15 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
     setWorkshopProgress({})
     setReadWorkshopParts({})
     setWorkshopQuizProgress({})
+    setArticleReadProgress({})
     setQuizSelections({})
     setQuizFeedback({})
     setSelectedWorkshopSlug(defaultWorkshopSlug)
     setSelectedWorkshopPartSlug(workshopEntries[0]?.parts[0]?.slug ?? 'overview')
+    setSelectedArticleSlug(defaultArticleSlug)
+    setStoredArticleReadProgress({})
+    persistDesktopPreference({ recentLearningItems: [] })
+    setRecentLearningItems([])
     setWorkshopResetVersion((current) => current + 1)
   }
 
@@ -2132,6 +1950,7 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {([
+            ['dashboard', 'Dashboard'],
             ['workshops', 'Workshops'],
             ['articles', 'Articles'],
           ] as const).map(([value, label]) => (
@@ -2147,7 +1966,6 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {([
-            ['dashboard', 'Dashboard'],
             ['catalog', 'Products & Orders'],
             ['users', 'Users'],
             ['break-modes', 'Break Modes'],
@@ -2172,6 +1990,40 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
       <div className={`min-h-0 flex-1 ${tab === 'workshops' || tab === 'articles' ? 'overflow-hidden' : 'overflow-y-auto pr-1'}`}>
       {tab === 'dashboard' ? (
         <div className="grid gap-4 xl:grid-cols-2">
+          {!dismissedWelcome ? (
+            <section className="rounded-[2rem] border border-emerald-300 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm xl:col-span-2">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-3xl">
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Welcome to Testbed</p>
+                  <h2 className="mt-3 text-3xl font-semibold text-slate-900">Start in the Introduction workshop, then open the website and try the main shopping flow.</h2>
+                  <p className="mt-3 text-slate-600">
+                    Testbed is split into two surfaces. The website is the application under test. The desktop app is your learning and control space for workshops, articles, presets, traces, and Postman assets.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button type="button" onClick={() => setTab('workshops')} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+                      Open workshops
+                    </button>
+                    {context?.serverUrl ? (
+                      <a href={context.serverUrl} target="_blank" rel="noreferrer" className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                        Open website
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDismissedWelcome(true)
+                        persistDesktopPreference({ dismissedWelcome: true })
+                      }}
+                      className="rounded-full bg-white px-4 py-2 font-medium text-slate-700"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
             <h2 className="text-2xl font-semibold">Overview</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -2203,6 +2055,45 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
           </section>
 
           <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+            <h2 className="text-2xl font-semibold">Learning Progress</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Workshops completed</p>
+                <p className="mt-2 text-3xl font-semibold">{completedWorkshopCount}</p>
+                <p className="mt-2 text-sm text-slate-600">of {workshopEntries.length} learning tracks</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Articles read</p>
+                <p className="mt-2 text-3xl font-semibold">{completedArticleCount}</p>
+                <p className="mt-2 text-sm text-slate-600">of {articleEntries.length} supporting reads</p>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Resume workshop</p>
+                <p className="mt-2 font-semibold">{selectedWorkshop?.title ?? 'Introduction to Testbed'}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Continue from part {Math.max(selectedWorkshopPartIndex + 1, 1)} in your current workshop.
+                </p>
+                <button type="button" onClick={() => setTab('workshops')} className="mt-3 rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700">
+                  Resume workshop
+                </button>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Next recommended</p>
+                <p className="mt-2 font-semibold">
+                  {isIntroductionComplete ? (articleEntries.find((article) => !articleReadProgress[article.slug])?.title ?? 'Explore Scenarios & Faults') : introductionWorkshop?.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {isIntroductionComplete
+                    ? 'Keep momentum by reading the next unread article or practising with presets and traces.'
+                    : 'Complete the introduction workshop to unlock the rest of the learning library.'}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
             <h2 className="text-2xl font-semibold">Routes</h2>
             <div className="mt-4 space-y-2">
               {demoConfig.routes
@@ -2224,26 +2115,35 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
-            <h2 className="text-2xl font-semibold">Runtime controls</h2>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <dt className="text-xs text-slate-600">Active preset</dt>
-                <dd className="font-mono text-xs text-slate-900">{testControls.activePresetId ?? 'none'}</dd>
-              </div>
-              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <dt className="text-xs text-slate-600">Preset modified</dt>
-                <dd className="font-mono text-xs text-slate-900">{presetModified ? 'Yes' : 'No'}</dd>
-              </div>
-              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <dt className="text-xs text-slate-600">Tracing enabled</dt>
-                <dd className="font-mono text-xs text-slate-900">{testControls.tracing.enabled ? 'Yes' : 'No'}</dd>
-              </div>
-              <div className="flex items-start justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                <dt className="text-xs text-slate-600">Tracing max entries</dt>
-                <dd className="font-mono text-xs text-slate-900">{testControls.tracing.maxEntries}</dd>
-              </div>
-            </dl>
+          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
+            <h2 className="text-2xl font-semibold">Recently Viewed</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {recentLearningItems.length === 0 ? (
+                <p className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+                  Recently viewed workshops and articles will appear here.
+                </p>
+              ) : (
+                recentLearningItems.map((item) => (
+                  <button
+                    key={`${item.kind}-${item.slug}`}
+                    type="button"
+                    onClick={() => {
+                      setTab(item.kind === 'workshop' ? 'workshops' : 'articles')
+                      if (item.kind === 'workshop') {
+                        setSelectedWorkshopSlug(item.slug)
+                      } else {
+                        setSelectedArticleSlug(item.slug)
+                      }
+                    }}
+                    className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:border-stone-300 hover:bg-white"
+                  >
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.kind}</p>
+                    <p className="mt-2 font-semibold">{item.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{new Date(item.viewedAt).toLocaleString()}</p>
+                  </button>
+                ))
+              )}
+            </div>
           </section>
         </div>
       ) : null}
@@ -2345,7 +2245,24 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">Password</span>
-                <input className={inputClass(Boolean(userErrors.password))} value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} />
+                <div className="flex gap-3">
+                  <input
+                    className={inputClass(Boolean(userErrors.password))}
+                    value={userForm.password}
+                    onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const password = generateStrongPassword()
+                      setUserForm((current) => ({ ...current, password }))
+                      setUserErrors((current) => ({ ...current, password: '' }))
+                    }}
+                    className="shrink-0 rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700"
+                  >
+                    Strong password
+                  </button>
+                </div>
                 {userErrors.password ? <p className="mt-2 text-sm text-rose-700">{userErrors.password}</p> : null}
               </label>
               <label className="block">
@@ -2464,6 +2381,14 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                     <div>
                       <h3 className="text-lg font-semibold">{preset.label}</h3>
                       <p className="mt-2 text-sm text-slate-600">{preset.description}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                        <span className="rounded-full bg-white px-3 py-1">
+                          {Object.values(preset.breakModes).flatMap((value) => (typeof value === 'object' ? Object.values(value) : [value])).filter(Boolean).length} break modes
+                        </span>
+                        <span className="rounded-full bg-white px-3 py-1">
+                          {Object.values(preset.faults).filter((fault) => fault.enabled).length} endpoint faults
+                        </span>
+                      </div>
                     </div>
                     <button type="button" onClick={() => void handleApplyPreset(preset.id)} className="btn-primary rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
                       Apply
@@ -2576,11 +2501,30 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
               </div>
             </div>
 
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <select className={inputClass(false)} value={traceEndpointFilter} onChange={(event) => setTraceEndpointFilter(event.target.value)}>
+                <option value="all">All endpoints</option>
+                {endpointKeys.map((endpointKey) => (
+                  <option key={endpointKey} value={endpointKey}>
+                    {endpointLabels[endpointKey]}
+                  </option>
+                ))}
+              </select>
+              <select className={inputClass(false)} value={traceStatusFilter} onChange={(event) => setTraceStatusFilter(event.target.value)}>
+                <option value="all">All statuses</option>
+                {[200, 400, 401, 403, 404, 409, 422, 500, 503].map((status) => (
+                  <option key={status} value={String(status)}>
+                    Status {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="mt-6 space-y-3">
-              {traces.length === 0 ? (
+              {filteredTraces.length === 0 ? (
                 <p className="text-sm text-slate-600">No traces recorded yet.</p>
               ) : (
-                traces.map((trace) => (
+                filteredTraces.map((trace) => (
                   <details key={trace.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
                     <summary className="cursor-pointer list-none">
                       <div className="grid gap-3 md:grid-cols-[1.1fr_1fr_0.7fr_0.9fr_0.8fr_1fr] md:items-center">
@@ -2599,11 +2543,30 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                         <p className="mt-2 text-sm text-slate-700">Latency: {trace.latencyMs}ms</p>
                         <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{JSON.stringify(trace.requestHeaders, null, 2)}</pre>
                         <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.requestBody ?? 'No request body'}</pre>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void navigator.clipboard.writeText(trace.requestBody ?? '')}
+                            className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
+                            disabled={!trace.requestBody}
+                          >
+                            Copy request body
+                          </button>
+                        </div>
                       </div>
                       <div className="rounded-2xl border border-stone-200 bg-white p-4">
                         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Response</p>
                         <p className="mt-2 text-sm text-slate-700">Preset: {trace.presetId ?? 'none'}</p>
                         <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied'}</pre>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void navigator.clipboard.writeText(trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied')}
+                            className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
+                          >
+                            Copy response summary
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </details>
@@ -2670,10 +2633,29 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
               <p className="mt-3 text-sm text-slate-600">
                 Browse the embedded training guides while using the desktop app controls.
               </p>
+              <div className="mt-4 grid gap-3">
+                <input
+                  value={workshopSearch}
+                  onChange={(event) => setWorkshopSearch(event.target.value)}
+                  placeholder="Search workshops"
+                  className={inputClass(false)}
+                />
+                <select className={inputClass(false)} value={workshopCategoryFilter} onChange={(event) => setWorkshopCategoryFilter(event.target.value)}>
+                  {workshopCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-5 min-h-0 space-y-5 overflow-y-auto pr-1">
-              {Object.entries(groupedWorkshops).map(([category, entries]) => (
+              {Object.keys(groupedFilteredWorkshops).length === 0 ? (
+                <p className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+                  No workshops match the current search and category filters.
+                </p>
+              ) : Object.entries(groupedFilteredWorkshops).map(([category, entries]) => (
                 <section key={category}>
                   <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{category}</h3>
                   <div className="mt-3 space-y-2">
@@ -2713,7 +2695,11 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                               >
                                 Completed
                               </span>
-                            ) : null}
+                            ) : (
+                              <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${isActive ? 'bg-white/15 text-slate-100' : 'bg-stone-200 text-stone-600'}`}>
+                                {workshop.estimatedEffort}
+                              </span>
+                            )}
                           </div>
                           <p
                             className={`mt-2 text-sm ${
@@ -2737,7 +2723,35 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
 
           <section className="flex min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm lg:p-8">
             <div className="shrink-0 rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
-              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">{selectedWorkshop.title}</h2>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{selectedWorkshop.category}</p>
+                  <h2 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">{selectedWorkshop.title}</h2>
+                  <p className="mt-3 max-w-3xl text-slate-600">{selectedWorkshop.summary}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-slate-600">
+                    {selectedWorkshop.estimatedEffort}
+                  </span>
+                  {selectedWorkshop.launchTarget ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const launchTarget = selectedWorkshop.launchTarget
+                        if (!launchTarget) return
+                        if (launchTarget.type === 'route') {
+                          window.open(launchTarget.value, '_blank')
+                        } else {
+                          setTab(launchTarget.value as typeof tab)
+                        }
+                      }}
+                      className="rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-slate-700"
+                    >
+                      {selectedWorkshop.launchTarget.label}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 shrink-0 rounded-[1.5rem] border border-stone-200 bg-white p-4">
@@ -2864,10 +2878,29 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
               <p className="mt-3 text-sm text-slate-600">
                 Short reads for testers who want clearer judgement, calmer investigation, and stronger automation habits.
               </p>
+              <div className="mt-4 grid gap-3">
+                <input
+                  value={articleSearch}
+                  onChange={(event) => setArticleSearch(event.target.value)}
+                  placeholder="Search articles"
+                  className={inputClass(false)}
+                />
+                <select className={inputClass(false)} value={articleCategoryFilter} onChange={(event) => setArticleCategoryFilter(event.target.value)}>
+                  {articleCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-5 min-h-0 space-y-5 overflow-y-auto pr-1">
-              {Object.entries(groupedArticles).map(([category, entries]) => (
+              {Object.keys(groupedFilteredArticles).length === 0 ? (
+                <p className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+                  No articles match the current search and category filters.
+                </p>
+              ) : Object.entries(groupedFilteredArticles).map(([category, entries]) => (
                 <section key={category}>
                   <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{category}</h3>
                   <div className="mt-3 space-y-2">
@@ -2889,10 +2922,14 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                             <p className="font-semibold">{article.title}</p>
                             <span
                               className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                                isActive ? 'bg-white/15 text-slate-100' : 'bg-stone-200 text-stone-600'
+                                isActive
+                                  ? 'bg-white/15 text-slate-100'
+                                  : articleReadProgress[article.slug]
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-stone-200 text-stone-600'
                               }`}
                             >
-                              {article.readingLength}
+                              {articleReadProgress[article.slug] ? 'Read' : article.readingLength}
                             </span>
                           </div>
                           <p className={`mt-2 text-sm ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>{article.summary}</p>
@@ -2913,13 +2950,32 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
                   <h2 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">{selectedArticle.title}</h2>
                   <p className="mt-3 max-w-3xl text-slate-600">{selectedArticle.summary}</p>
                 </div>
-                <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-slate-600">
-                  {selectedArticle.readingLength}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-slate-600">
+                    {selectedArticle.readingLength}
+                  </span>
+                  {selectedArticle.launchTarget ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const launchTarget = selectedArticle.launchTarget
+                        if (!launchTarget) return
+                        if (launchTarget.type === 'route') {
+                          window.open(launchTarget.value, '_blank')
+                        } else {
+                          setTab(launchTarget.value as typeof tab)
+                        }
+                      }}
+                      className="rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-slate-700"
+                    >
+                      {selectedArticle.launchTarget.label}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 min-h-0 overflow-y-auto pr-2">
+            <div ref={articleContentRef} onScroll={handleArticleContentScroll} className="mt-6 min-h-0 overflow-y-auto pr-2">
               <MarkdownDocument markdown={selectedArticle.markdown} hideFirstHeading />
             </div>
           </section>
@@ -2950,7 +3006,7 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
           <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold">Workshop Progress</h2>
             <p className="mt-2 text-slate-600">
-              Workshop completion, read-state, and quiz gate progress are stored locally in the desktop app.
+              Workshop progress, article read-state, and quiz gate progress are stored locally in the desktop app.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button

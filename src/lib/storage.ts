@@ -6,6 +6,9 @@ const WORKSHOP_PROGRESS_KEY = 'workshop-progress'
 const WORKSHOP_READ_PARTS_KEY = 'workshop-read-parts'
 const WORKSHOP_QUIZ_PROGRESS_KEY = 'workshop-quiz-progress'
 const WORKSHOP_LAST_VIEW_KEY = 'workshop-last-view'
+const ARTICLE_READ_PROGRESS_KEY = 'article-read-progress'
+const ARTICLE_LAST_VIEW_KEY = 'article-last-view'
+const DESKTOP_PREFERENCES_KEY = 'desktop-preferences'
 const THEME_MODE_KEY = 'theme-mode'
 
 function safeRead<T>(key: string, fallback: T): T {
@@ -97,4 +100,49 @@ export function getStoredThemeMode() {
 
 export function setStoredThemeMode(value: 'light' | 'dark') {
   safeWrite(THEME_MODE_KEY, value)
+}
+
+export function getStoredArticleReadProgress() {
+  return safeRead<Record<string, boolean>>(ARTICLE_READ_PROGRESS_KEY, {})
+}
+
+export function setStoredArticleReadProgress(progress: Record<string, boolean>) {
+  safeWrite(ARTICLE_READ_PROGRESS_KEY, progress)
+}
+
+export function getStoredArticleLastView() {
+  return safeRead<{ articleSlug: string } | null>(ARTICLE_LAST_VIEW_KEY, null)
+}
+
+export function setStoredArticleLastView(value: { articleSlug: string }) {
+  safeWrite(ARTICLE_LAST_VIEW_KEY, value)
+}
+
+export function getDesktopPreferences() {
+  return safeRead<{
+    lastDesktopTab?: string
+    dismissedWelcome?: boolean
+    recentLearningItems?: { kind: 'workshop' | 'article'; slug: string; title: string; viewedAt: string }[]
+  }>(DESKTOP_PREFERENCES_KEY, {})
+}
+
+export function setDesktopPreferences(value: {
+  lastDesktopTab?: string
+  dismissedWelcome?: boolean
+  recentLearningItems?: { kind: 'workshop' | 'article'; slug: string; title: string; viewedAt: string }[]
+}) {
+  safeWrite(DESKTOP_PREFERENCES_KEY, value)
+}
+
+export function updateRecentLearningItem(item: { kind: 'workshop' | 'article'; slug: string; title: string }) {
+  const current = getDesktopPreferences()
+  const recentLearningItems = [
+    { ...item, viewedAt: new Date().toISOString() },
+    ...(current.recentLearningItems ?? []).filter((entry) => !(entry.kind === item.kind && entry.slug === item.slug)),
+  ].slice(0, 6)
+
+  setDesktopPreferences({
+    ...current,
+    recentLearningItems,
+  })
 }
