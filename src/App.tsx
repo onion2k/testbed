@@ -2115,7 +2115,12 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
           <div className="flex flex-wrap gap-3">
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             {context?.serverUrl ? (
-              <a href={context.serverUrl} target="_blank" rel="noreferrer" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+              <a
+                href={context.serverUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary rounded-full border-2 border-emerald-700 bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+              >
                 Open web app
               </a>
             ) : null}
