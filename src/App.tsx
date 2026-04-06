@@ -1290,6 +1290,7 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
   const [savingBreakModes, setSavingBreakModes] = useState(false)
   const [savingFaults, setSavingFaults] = useState(false)
   const [savingTracing, setSavingTracing] = useState(false)
+  const [routePanelMode, setRoutePanelMode] = useState<'website' | 'api'>('website')
   const presetModified = useMemo(() => arePresetValuesModified(testControls, presets), [presets, testControls])
   const introductionWorkshop = workshopEntries[0] ?? null
   const selectedWorkshop =
@@ -1921,6 +1922,36 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
     '/vip': 'Premium route for VIP-only products.',
     '/reset': 'Clears local browser state for a fresh run.',
   }
+  const routeAccessOverrides: Record<string, string> = {
+    '/shop': 'public',
+    '/checkout': 'public',
+    '/orders': 'signed-in users',
+  }
+  const compactApiDescriptions: Array<{ path: string; method: string; access: string; description: string }> = [
+    { method: 'GET', path: '/api/health', access: 'public', description: 'Readiness endpoint for smoke checks and local startup verification.' },
+    { method: 'GET', path: '/api/runtime/bootstrap', access: 'public', description: 'Returns runtime app config, users, and active break modes.' },
+    { method: 'POST', path: '/api/auth/login', access: 'public', description: 'Validates local credentials and returns the signed-in user payload.' },
+    { method: 'GET', path: '/api/shop/products', access: 'public', description: 'Returns the product catalog used by the website.' },
+    { method: 'GET', path: '/api/orders', access: 'public', description: 'Returns saved orders for learning and website history flows.' },
+    { method: 'POST', path: '/api/orders', access: 'public', description: 'Creates an order from the checkout payload.' },
+    { method: 'GET', path: '/api/test-controls/config', access: 'public', description: 'Returns current preset, faults, tracing, and break modes.' },
+    { method: 'POST', path: '/api/test-controls/config', access: 'public', description: 'Updates test-control break modes, faults, and tracing settings.' },
+    { method: 'GET', path: '/api/test-controls/presets', access: 'public', description: 'Lists all available scenario presets.' },
+    { method: 'POST', path: '/api/test-controls/presets/:presetId/apply', access: 'public', description: 'Applies a named preset to the runtime state.' },
+    { method: 'POST', path: '/api/test-controls/tracing', access: 'public', description: 'Updates trace capture settings.' },
+    { method: 'GET', path: '/api/test-controls/traces', access: 'public', description: 'Returns recent trace entries.' },
+    { method: 'DELETE', path: '/api/test-controls/traces', access: 'public', description: 'Clears the trace history.' },
+    { method: 'GET', path: '/api/postman/collection', access: 'public', description: 'Downloads a generated Postman collection for the running server.' },
+    { method: 'GET', path: '/api/postman/environment', access: 'public', description: 'Downloads a generated Postman environment including the admin token.' },
+    { method: 'GET', path: '/api/admin/overview', access: 'admin token', description: 'Returns the desktop admin overview payload.' },
+    { method: 'GET', path: '/api/admin/users', access: 'admin token', description: 'Lists managed runtime users.' },
+    { method: 'POST', path: '/api/admin/users', access: 'admin token', description: 'Creates a new runtime user.' },
+    { method: 'PUT', path: '/api/admin/users/:username', access: 'admin token', description: 'Updates an existing runtime user.' },
+    { method: 'DELETE', path: '/api/admin/users/:username', access: 'admin token', description: 'Deletes a runtime user.' },
+    { method: 'POST', path: '/api/admin/break-modes', access: 'admin token', description: 'Writes break modes used by the website and desktop app.' },
+    { method: 'PATCH', path: '/api/admin/products/:id', access: 'admin token', description: 'Updates product stock and visibility.' },
+    { method: 'POST', path: '/api/admin/reset-runtime', access: 'admin token', description: 'Resets runtime JSON back to defaults.' },
+  ]
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-6 overflow-hidden">
@@ -2093,25 +2124,63 @@ function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggle
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
-            <h2 className="text-2xl font-semibold">Routes</h2>
-            <div className="mt-4 space-y-2">
-              {demoConfig.routes
-                .filter((route) => route.path !== '/desktop')
-                .map((route) => (
-                <div key={route.path} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold leading-tight">{route.label}</p>
-                      <div className="mt-1 grid grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-x-3 text-xs text-slate-600">
-                        <p className="font-mono">{route.path}</p>
-                        <p className="truncate">{compactRouteDescriptions[route.path] ?? route.description}</p>
+          <section className="flex min-h-[28rem] flex-col rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-semibold">Routes</h2>
+              <div className="flex flex-wrap gap-2 rounded-full bg-stone-100 p-1">
+                {([
+                  ['website', 'Website'],
+                  ['api', 'API'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRoutePanelMode(value)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                      routePanelMode === value ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-stone-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {routePanelMode === 'website'
+                ? demoConfig.routes
+                    .filter((route) => route.path !== '/desktop')
+                    .map((route) => (
+                      <div key={route.path} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold leading-tight">{route.label}</p>
+                            <div className="mt-1 grid grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-x-3 text-xs text-slate-600">
+                              <p className="font-mono">{route.path}</p>
+                              <p className="truncate">{compactRouteDescriptions[route.path] ?? route.description}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                            {routeAccessOverrides[route.path] ?? route.access}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                : compactApiDescriptions.map((route) => (
+                    <div key={`${route.method}-${route.path}`} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold leading-tight">
+                            <span className="mr-2 inline-block rounded-full bg-white px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-600">
+                              {route.method}
+                            </span>
+                            {route.path}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-600">{route.description}</p>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{route.access}</span>
                       </div>
                     </div>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{route.access}</span>
-                  </div>
-                </div>
-              ))}
+                  ))}
             </div>
           </section>
 
