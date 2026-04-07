@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import * as electron from 'electron/main'
 
 const { app, BrowserWindow, dialog, ipcMain, shell } = electron
@@ -15,7 +15,7 @@ let runtime = null
 let currentDataDirectory = null
 
 async function loadServerModule() {
-  return import(path.join(__dirname, '..', 'server', 'create-server.mjs'))
+  return import(pathToFileURL(path.join(__dirname, '..', 'server', 'create-server.mjs')).href)
 }
 
 function settingsPath() {
