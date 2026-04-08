@@ -242,6 +242,11 @@ html.theme-dark body {
   background-color: #ffffff !important;
 }
 
+.theme-dark select {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
 .theme-dark .site-footer {
   background-color: rgba(15, 23, 42, 0.92) !important;
   border-color: #334155 !important;
