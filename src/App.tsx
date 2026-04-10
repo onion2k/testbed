@@ -245,7 +245,7 @@ function ProtectedRoute({ children, role }: { children: ReactNode; role?: Role }
 
   if (role && !canAccessRole(user.role, role)) {
     return (
-      <section className="rounded-3xl border border-rose-200 bg-rose-50 p-8">
+      <section className="panel-accent panel-accent-rose rounded-[1.25rem] p-8">
         <h1 className="text-3xl font-semibold">Access denied</h1>
         <p className="mt-3 max-w-2xl text-slate-700">
           This route requires <strong>{role === 'customer' ? 'customer or vip' : role}</strong>{' '}
@@ -293,7 +293,7 @@ function LoginPage() {
   }
 
   return (
-    <section className="mx-auto max-w-xl rounded-[2rem] border border-stone-300 bg-white p-8 shadow-sm">
+    <section className="panel-accent panel-accent-sky mx-auto max-w-xl rounded-[1.25rem] p-8">
       <h1 className="text-3xl font-semibold">Login</h1>
       <p className="mt-3 text-slate-600">Credentials are loaded from the runtime JSON data folder.</p>
       {from !== '/' ? (
@@ -448,7 +448,7 @@ function BasketSummary({
   const displayedSubtotal = calculateDisplayedSubtotal(subtotal, breakModes.brokenCheckoutTotal)
 
   return (
-    <aside className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+    <aside className="panel-accent panel-accent-emerald rounded-[1.25rem] p-6">
       <h2 className="text-2xl font-semibold">{contentLabels.basketTitle}</h2>
       <div className="mt-4 space-y-3">
         {items.length === 0 ? (
@@ -512,12 +512,12 @@ function ProductGrid({
   onRetry: () => void
 }) {
   if (loading) {
-    return <section className="rounded-[2rem] border border-stone-300 bg-white p-8">Loading products...</section>
+    return <section className="panel-accent panel-accent-sky rounded-[1.25rem] p-8">Loading products...</section>
   }
 
   if (error) {
     return (
-      <section className="rounded-[2rem] border border-rose-200 bg-rose-50 p-8">
+      <section className="panel-accent panel-accent-rose rounded-[1.25rem] p-8">
         <h1 className="text-3xl font-semibold">Products unavailable</h1>
         <p className="mt-3 text-slate-700">{error}</p>
         <button type="button" onClick={onRetry} className="btn-danger mt-4 rounded-full bg-rose-700 px-4 py-2 font-medium text-white">
@@ -528,7 +528,7 @@ function ProductGrid({
   }
 
   return (
-    <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+    <section className={`panel-accent rounded-[1.25rem] p-6 ${title === contentLabels.vipTitle ? 'panel-accent-violet' : 'panel-accent-amber'}`}>
       <h1 className="text-3xl font-semibold">{title}</h1>
       <p className="mt-2 text-slate-600">
         The markup intentionally exposes ARIA roles, `data-testid` values, and CSS hooks.
@@ -540,7 +540,7 @@ function ProductGrid({
           products.map((product) => (
             <article
               key={product.id}
-              className={`overflow-hidden rounded-[1.75rem] border border-stone-200 bg-stone-50 ${qaClass('qa-product-card')}`}
+              className={`overflow-hidden rounded-[1rem] border border-stone-200 bg-stone-50 ${qaClass('qa-product-card')}`}
               data-testid={testId(`product-${product.id}`)}
             >
               <img src={product.image} alt={product.name} className="h-48 w-full object-cover" />
@@ -645,12 +645,12 @@ function OrdersPage() {
   }, [user?.username])
 
   if (loading) {
-    return <section className="rounded-[2rem] border border-stone-300 bg-white p-8">Loading orders...</section>
+    return <section className="panel-accent panel-accent-sky rounded-[1.25rem] p-8">Loading orders...</section>
   }
 
   if (error) {
     return (
-      <section className="rounded-[2rem] border border-rose-200 bg-rose-50 p-8">
+      <section className="panel-accent panel-accent-rose rounded-[1.25rem] p-8">
         <h1 className="text-3xl font-semibold">Order history unavailable</h1>
         <p className="mt-3 text-slate-700">{error}</p>
       </section>
@@ -658,7 +658,7 @@ function OrdersPage() {
   }
 
   return (
-    <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+    <section className="panel-accent panel-accent-cyan rounded-[1.25rem] p-6">
       <h1 className="text-3xl font-semibold">Order history</h1>
       <p className="mt-2 text-slate-600">Orders persist in the selected runtime data folder until reset.</p>
       <div className="mt-6 space-y-4">
@@ -666,7 +666,7 @@ function OrdersPage() {
           <p className="text-sm text-slate-600">No orders have been created yet.</p>
         ) : (
           orders.map((order) => (
-            <article key={order.id} className="rounded-3xl border border-stone-200 bg-stone-50 p-5" data-testid={testId(`order-${order.id}`)}>
+            <article key={order.id} className="rounded-[1rem] border border-stone-200 bg-stone-50 p-5" data-testid={testId(`order-${order.id}`)}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold">{order.id}</h2>
@@ -807,11 +807,11 @@ function CheckoutPage() {
   }
 
   if (loading) {
-    return <section className="rounded-[2rem] border border-stone-300 bg-white p-8">Loading checkout...</section>
+    return <section className="panel-accent panel-accent-sky rounded-[1.25rem] p-8">Loading checkout...</section>
   }
 
   return (
-    <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+    <section className="panel-accent panel-accent-amber rounded-[1.25rem] p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold">{contentLabels.checkoutTitle}</h1>
@@ -831,7 +831,7 @@ function CheckoutPage() {
       {step === 1 ? (
         <div className="mt-6 grid gap-4">
           {cart.length === 0 ? (
-            <div className="rounded-3xl border border-stone-200 bg-stone-50 p-6">
+            <div className="rounded-[1rem] border border-stone-200 bg-stone-50 p-6">
               <p className="text-slate-600">Your basket is empty.</p>
               <button type="button" onClick={() => navigate('/shop')} className="btn-primary mt-4 rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
                 Go to shop
@@ -841,7 +841,7 @@ function CheckoutPage() {
             cart.map((item) => {
               const product = products.find((candidate) => candidate.id === item.productId)
               return (
-                <div key={item.productId} className="rounded-3xl border border-stone-200 bg-stone-50 p-5">
+                <div key={item.productId} className="rounded-[1rem] border border-stone-200 bg-stone-50 p-5">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-semibold">{product?.name}</p>
@@ -853,7 +853,7 @@ function CheckoutPage() {
               )
             })
           )}
-          <div className="flex items-center justify-between rounded-3xl border border-stone-200 bg-stone-50 p-5">
+          <div className="flex items-center justify-between rounded-[1rem] border border-stone-200 bg-stone-50 p-5">
             <span className="font-medium">Subtotal</span>
             <span className="font-semibold">{currency(checkoutTotals.subtotal)}</span>
           </div>
@@ -913,7 +913,7 @@ function CheckoutPage() {
       ) : null}
 
       {step === 4 ? (
-        <div className="mt-6 rounded-3xl border border-stone-200 bg-stone-50 p-6">
+        <div className="mt-6 rounded-[1rem] border border-stone-200 bg-stone-50 p-6">
           {confirmation ? (
             <>
               <h2 className="text-2xl font-semibold">Order confirmed</h2>

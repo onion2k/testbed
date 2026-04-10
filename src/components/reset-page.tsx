@@ -13,5 +13,5 @@ export function ResetPage() {
     navigate('/', { replace: true })
   }, [logout, navigate])
 
-  return <section className="rounded-[2rem] border border-stone-300 bg-white p-8">Resetting browser state...</section>
+  return <section className="panel-accent panel-accent-sky rounded-[1.25rem] p-8">Resetting browser state...</section>
 }

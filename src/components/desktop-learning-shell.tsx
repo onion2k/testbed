@@ -49,7 +49,7 @@ export function LearningLibrarySections<T extends { category: string }>({
 }) {
   if (Object.keys(groupedEntries).length === 0) {
     return (
-      <p className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+      <p className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
         {emptyMessage}
       </p>
     )
@@ -75,7 +75,7 @@ export function CompactLibraryDisclosure({
   children: ReactNode
 }) {
   return (
-    <details className="rounded-[1.5rem] border border-stone-300 bg-white p-3 shadow-sm sm:p-4">
+    <details className="panel-accent panel-accent-cyan rounded-[10px] p-3 sm:p-4">
       <summary className="cursor-pointer list-none text-left">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -154,7 +154,7 @@ export function LearningShellPanel({
   }
 
   return (
-    <aside className={`${hidden ? 'hidden' : 'flex'} min-h-0 flex-col rounded-[2rem] border border-stone-300 bg-white p-4 shadow-sm sm:p-5`}>
+    <aside className={`${hidden ? 'hidden' : 'flex'} panel-accent panel-accent-cyan min-h-0 flex-col rounded-[10px] p-4 sm:p-5`}>
       <div className="shrink-0">
         <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{title}</p>
         <h2 className="mt-2 text-2xl font-semibold sm:mt-3 sm:text-3xl">{heading}</h2>
@@ -185,7 +185,7 @@ export function LearningContentHeader({
   action?: ReactNode
 }) {
   return (
-    <div className={`shrink-0 rounded-[1.5rem] border border-stone-200 bg-stone-50 ${compact ? 'p-3' : 'p-4 sm:p-5'}`}>
+    <div className={`shrink-0 rounded-[10px] border border-stone-200 bg-stone-50 ${compact ? 'p-3' : 'p-4 sm:p-5'}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className={`${compact ? 'text-[11px]' : 'text-sm'} font-semibold uppercase tracking-[0.18em] text-slate-500`}>

@@ -132,6 +132,7 @@ type WorkshopEntry = (typeof workshopEntries)[number]
 type ArticleEntry = (typeof articleEntries)[number]
 
 export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; onToggleTheme: () => void }) {
+  const desktopInputClass = (hasError: boolean) => inputClass(hasError).replace('rounded-2xl', 'rounded-[10px]')
   const desktopPreferences = getDesktopPreferences()
   const initialWorkshopLastView = getStoredWorkshopLastView()
   const initialArticleLastView = getStoredArticleLastView()
@@ -284,7 +285,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
           if (isLocked) return
           setSelectedWorkshopSlug(workshop.slug)
         }}
-        className={`block w-full border text-left transition ${compact ? 'rounded-[1.25rem] px-3 py-2.5' : 'rounded-[1.5rem] px-4 py-3'} ${
+        className={`block w-full border text-left transition ${compact ? 'rounded-[10px] px-3 py-2.5' : 'rounded-[10px] px-4 py-3'} ${
           isActive
             ? 'border-slate-900 bg-slate-900 text-white'
             : isLocked
@@ -334,7 +335,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
         key={article.slug}
         type="button"
         onClick={() => setSelectedArticleSlug(article.slug)}
-        className={`block w-full rounded-[1.5rem] border px-4 py-3 text-left transition ${
+        className={`block w-full rounded-[10px] border px-4 py-3 text-left transition ${
           isActive
             ? 'border-slate-900 bg-slate-900 text-white'
             : 'border-stone-200 bg-stone-50 text-slate-700 hover:border-stone-300 hover:bg-white'
@@ -845,15 +846,15 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
   }
 
   if (loading) {
-    return <section className="rounded-[2rem] border border-stone-300 bg-white p-8">Loading desktop admin...</section>
+    return <section className="panel-accent panel-accent-sky rounded-[10px] p-8">Loading desktop admin...</section>
   }
 
   if (error && !overview) {
     return (
-      <section className="rounded-[2rem] border border-rose-200 bg-rose-50 p-8">
+      <section className="panel-accent panel-accent-rose rounded-[10px] p-8">
         <h1 className="text-3xl font-semibold">Desktop admin unavailable</h1>
         <p className="mt-3 text-slate-700">{error}</p>
-        <button type="button" onClick={() => void loadDesktopData()} className="btn-danger mt-4 rounded-full bg-rose-700 px-4 py-2 font-medium text-white">
+        <button type="button" onClick={() => void loadDesktopData()} className="btn-danger mt-4 rounded-[10px] bg-rose-700 px-4 py-2 font-medium text-white">
           Retry
         </button>
       </section>
@@ -904,7 +905,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
   return (
     <div className={`flex h-full min-h-0 w-full flex-col overflow-hidden ${isCompactDesktopShell ? 'gap-3' : 'gap-6'}`}>
-      <section className={`rounded-[2rem] border border-stone-300 bg-white shadow-sm ${isCompactDesktopShell ? 'p-3' : 'p-4 sm:p-5 lg:p-6'}`}>
+      <section className={`panel-accent panel-accent-amber rounded-[10px] ${isCompactDesktopShell ? 'p-3' : 'p-4 sm:p-5 lg:p-6'}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className={`${isCompactDesktopShell ? 'text-xl' : 'text-2xl sm:text-3xl'} font-semibold`}>Testbed</h1>
@@ -919,7 +920,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 href={context.serverUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-primary rounded-full border-2 border-emerald-700 bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 sm:px-5 sm:py-2.5"
+                className="btn-primary rounded-[10px] border-2 border-emerald-700 bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 sm:px-5 sm:py-2.5"
               >
                 Open web app
               </a>
@@ -930,11 +931,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       </section>
 
       {isCompactDesktopShell ? (
-        <section className="rounded-[1.25rem] border border-stone-300 bg-white p-3 shadow-sm">
+        <section className="panel-accent panel-accent-cyan rounded-[10px] p-3">
           <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
             <span className="shrink-0 text-[11px] uppercase tracking-[0.18em] text-slate-500">Section</span>
             <select
-              className="min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-500"
+              className="min-w-0 flex-1 rounded-[10px] border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-500"
               value={tab}
               onChange={(event) => setTab(event.target.value as DesktopTab)}
             >
@@ -954,7 +955,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 key={value}
                 type="button"
                 onClick={() => setTab(value)}
-                className={`rounded-full px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
+                className={`rounded-[10px] px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
               >
                 {label}
               </button>
@@ -966,7 +967,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 key={value}
                 type="button"
                 onClick={() => setTab(value)}
-                className={`rounded-full px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
+                className={`rounded-[10px] px-4 py-2 text-sm font-medium ${tab === value ? 'bg-slate-900 text-white' : 'bg-stone-200 text-slate-700'}`}
               >
                 {label}
               </button>
@@ -979,7 +980,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       {tab === 'dashboard' ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {!dismissedWelcome ? (
-            <section className="rounded-[2rem] border border-emerald-300 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm xl:col-span-2">
+            <section className="panel-accent panel-accent-emerald rounded-[10px] p-6 xl:col-span-2">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="max-w-3xl">
                   <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Welcome to Testbed</p>
@@ -988,11 +989,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                     Testbed is split into two surfaces. The website is the application under test. The desktop app is your learning and control space for workshops, articles, presets, traces, and Postman assets.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => setTab('workshops')} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+                    <button type="button" onClick={() => setTab('workshops')} className="btn-primary rounded-[10px] bg-slate-900 px-4 py-2 font-medium text-white">
                       Open workshops
                     </button>
                     {context?.serverUrl ? (
-                      <a href={context.serverUrl} target="_blank" rel="noreferrer" className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                      <a href={context.serverUrl} target="_blank" rel="noreferrer" className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                         Open website
                       </a>
                     ) : null}
@@ -1002,7 +1003,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                         setDismissedWelcome(true)
                         persistDesktopPreference({ dismissedWelcome: true })
                       }}
-                      className="rounded-full bg-white px-4 py-2 font-medium text-slate-700"
+                      className="rounded-[10px] bg-white px-4 py-2 font-medium text-slate-700"
                     >
                       Dismiss
                     </button>
@@ -1012,7 +1013,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </section>
           ) : null}
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
+          <section className="panel-accent panel-accent-sky rounded-[10px] p-5 xl:col-span-2">
             <h2 className="text-2xl font-semibold">Overview</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
               {[
@@ -1023,51 +1024,51 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 ['Active preset', testControls.activePresetId ?? 'none'],
                 ['Trace entries', String(traces.length)],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                <div key={label} className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
                   <p className="mt-2 text-2xl font-semibold">{value}</p>
                 </div>
               ))}
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={() => void handleResetRuntime()} className="btn-danger rounded-full bg-rose-700 px-4 py-2 font-medium text-white">
+              <button type="button" onClick={() => void handleResetRuntime()} className="btn-danger rounded-[10px] bg-rose-700 px-4 py-2 font-medium text-white">
                 Reset runtime data
               </button>
-              <button type="button" onClick={() => { resetDemoState(); window.location.reload() }} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              <button type="button" onClick={() => { resetDemoState(); window.location.reload() }} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Reset browser state
               </button>
-              <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Refresh traces
               </button>
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+          <section className="panel-accent panel-accent-violet rounded-[10px] p-5">
             <h2 className="text-2xl font-semibold">Learning Progress</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+              <div className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Workshops completed</p>
                 <p className="mt-2 text-3xl font-semibold">{completedWorkshopCount}</p>
                 <p className="mt-2 text-sm text-slate-600">of {workshopEntries.length} learning tracks</p>
               </div>
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+              <div className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Articles read</p>
                 <p className="mt-2 text-3xl font-semibold">{completedArticleCount}</p>
                 <p className="mt-2 text-sm text-slate-600">of {articleEntries.length} supporting reads</p>
               </div>
             </div>
             <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <div className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Resume workshop</p>
                 <p className="mt-2 font-semibold">{selectedWorkshop?.title ?? 'Introduction to Testbed'}</p>
                 <p className="mt-1 text-sm text-slate-600">
                   Continue from part {Math.max(selectedWorkshopPartIndex + 1, 1)} in your current workshop.
                 </p>
-                <button type="button" onClick={() => setTab('workshops')} className="mt-3 rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700">
+                <button type="button" onClick={() => setTab('workshops')} className="mt-3 rounded-[10px] bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700">
                   Resume workshop
                 </button>
               </div>
-              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <div className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Next recommended</p>
                 <p className="mt-2 font-semibold">
                   {isIntroductionComplete ? (articleEntries.find((article) => !articleReadProgress[article.slug])?.title ?? 'Explore Scenarios & Faults') : introductionWorkshop?.title}
@@ -1081,10 +1082,10 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </section>
 
-          <section className="flex min-h-[28rem] flex-col rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm">
+          <section className="panel-accent panel-accent-cyan flex min-h-[28rem] flex-col rounded-[10px] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-semibold">Routes</h2>
-              <div className="flex flex-wrap gap-2 rounded-full bg-stone-100 p-1">
+              <div className="flex flex-wrap gap-2 rounded-[10px] bg-stone-100 p-1">
                 {([
                   ['website', 'Website'],
                   ['api', 'API'],
@@ -1093,7 +1094,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                     key={value}
                     type="button"
                     onClick={() => setRoutePanelMode(value)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                    className={`rounded-[10px] px-3 py-1.5 text-sm font-medium transition ${
                       routePanelMode === value ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-stone-200'
                     }`}
                   >
@@ -1107,7 +1108,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 ? demoConfig.routes
                     .filter((route) => route.path !== '/desktop')
                     .map((route) => (
-                      <div key={route.path} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                      <div key={route.path} className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold leading-tight">{route.label}</p>
@@ -1123,7 +1124,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       </div>
                     ))
                 : compactApiDescriptions.map((route) => (
-                    <div key={`${route.method}-${route.path}`} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                    <div key={`${route.method}-${route.path}`} className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold leading-tight">
@@ -1141,11 +1142,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-5 shadow-sm xl:col-span-2">
+          <section className="panel-accent panel-accent-rose rounded-[10px] p-5 xl:col-span-2">
             <h2 className="text-2xl font-semibold">Recently Viewed</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {recentLearningItems.length === 0 ? (
-                <p className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+                <p className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
                   Recently viewed workshops and articles will appear here.
                 </p>
               ) : (
@@ -1161,7 +1162,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                         setSelectedArticleSlug(item.slug)
                       }
                     }}
-                    className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:border-stone-300 hover:bg-white"
+                    className="rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:border-stone-300 hover:bg-white"
                   >
                     <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.kind}</p>
                     <p className="mt-2 font-semibold">{item.title}</p>
@@ -1176,24 +1177,24 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
       {tab === 'catalog' ? (
         <div className="grid gap-6 xl:grid-cols-2">
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm xl:col-span-2">
+          <section className="panel-accent panel-accent-amber rounded-[10px] p-6 xl:col-span-2">
             <h2 className="text-2xl font-semibold">Products</h2>
             <div className="mt-4 space-y-3">
               {overview.products.map((product) => (
-                <div key={product.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <div key={product.id} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <p className="font-semibold">{product.name}</p>
                       <p className="text-sm text-slate-500">Stock: {product.stock}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => void handleProductAdjust(product.id, product.stock, -1)} className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium">
+                      <button type="button" onClick={() => void handleProductAdjust(product.id, product.stock, -1)} className="rounded-[10px] bg-stone-200 px-3 py-2 text-sm font-medium">
                         -1 stock
                       </button>
-                      <button type="button" onClick={() => void handleProductAdjust(product.id, product.stock, 1)} className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium">
+                      <button type="button" onClick={() => void handleProductAdjust(product.id, product.stock, 1)} className="rounded-[10px] bg-stone-200 px-3 py-2 text-sm font-medium">
                         +1 stock
                       </button>
-                      <button type="button" onClick={() => void handleProductVisibility(product.id, Boolean(product.hidden))} className="btn-primary rounded-full bg-slate-900 px-3 py-2 text-sm font-medium text-white">
+                      <button type="button" onClick={() => void handleProductVisibility(product.id, Boolean(product.hidden))} className="btn-primary rounded-[10px] bg-slate-900 px-3 py-2 text-sm font-medium text-white">
                         {product.hidden ? 'Show' : 'Hide'}
                       </button>
                     </div>
@@ -1203,14 +1204,14 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm xl:col-span-2">
+          <section className="panel-accent panel-accent-cyan rounded-[10px] p-6 xl:col-span-2">
             <h2 className="text-2xl font-semibold">Orders</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {overview.orders.length === 0 ? (
                 <p className="text-sm text-slate-600">No orders yet.</p>
               ) : (
                 overview.orders.map((order) => (
-                  <div key={order.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <div key={order.id} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                     <p className="font-semibold">{order.id}</p>
                     <p className="text-sm text-slate-600">{order.username}</p>
                     <p className="text-sm text-slate-500">Total: {currency(order.total)}</p>
@@ -1224,11 +1225,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
       {tab === 'users' ? (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-sky rounded-[10px] p-6">
             <h2 className="text-2xl font-semibold">Users</h2>
             <div className="mt-4 space-y-3">
               {overview.users.map((user) => (
-                <div key={user.username} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <div key={user.username} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold">{user.displayName}</p>
@@ -1242,11 +1243,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                           setEditingUsername(user.username)
                           setUserForm(user)
                         }}
-                        className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium"
+                        className="rounded-[10px] bg-stone-200 px-3 py-2 text-sm font-medium"
                       >
                         Edit
                       </button>
-                      <button type="button" onClick={() => void handleDeleteUser(user.username)} className="btn-danger rounded-full bg-rose-700 px-3 py-2 text-sm font-medium text-white">
+                      <button type="button" onClick={() => void handleDeleteUser(user.username)} className="btn-danger rounded-[10px] bg-rose-700 px-3 py-2 text-sm font-medium text-white">
                         Delete
                       </button>
                     </div>
@@ -1256,24 +1257,24 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-violet rounded-[10px] p-6">
             <h2 className="text-2xl font-semibold">{editingUsername ? 'Edit user' : 'Create user'}</h2>
             <form className="mt-4 space-y-4" onSubmit={handleSaveUser}>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">Display name</span>
-                <input className={inputClass(Boolean(userErrors.displayName))} value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} />
+                <input className={desktopInputClass(Boolean(userErrors.displayName))} value={userForm.displayName} onChange={(event) => setUserForm((current) => ({ ...current, displayName: event.target.value }))} />
                 {userErrors.displayName ? <p className="mt-2 text-sm text-rose-700">{userErrors.displayName}</p> : null}
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">Username</span>
-                <input className={inputClass(Boolean(userErrors.username))} value={userForm.username} onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))} />
+                <input className={desktopInputClass(Boolean(userErrors.username))} value={userForm.username} onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))} />
                 {userErrors.username ? <p className="mt-2 text-sm text-rose-700">{userErrors.username}</p> : null}
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">Password</span>
                 <div className="flex gap-3">
                   <input
-                    className={inputClass(Boolean(userErrors.password))}
+                    className={desktopInputClass(Boolean(userErrors.password))}
                     value={userForm.password}
                     onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
                   />
@@ -1284,7 +1285,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       setUserForm((current) => ({ ...current, password }))
                       setUserErrors((current) => ({ ...current, password: '' }))
                     }}
-                    className="shrink-0 rounded-full bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700"
+                    className="shrink-0 rounded-[10px] bg-stone-200 px-4 py-2 text-sm font-medium text-slate-700"
                   >
                     Strong password
                   </button>
@@ -1293,18 +1294,18 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">Role</span>
-                <select className={inputClass(false)} value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value as Role }))}>
+                <select className={desktopInputClass(false)} value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value as Role }))}>
                   <option value="customer">customer</option>
                   <option value="vip">vip</option>
                   <option value="admin">admin</option>
                 </select>
               </label>
               <div className="flex flex-wrap gap-3">
-                <button type="submit" className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white" disabled={savingUser}>
+                <button type="submit" className="btn-primary rounded-[10px] bg-slate-900 px-4 py-2 font-medium text-white" disabled={savingUser}>
                   {savingUser ? 'Saving...' : editingUsername ? 'Save user' : 'Create user'}
                 </button>
                 {editingUsername ? (
-                  <button type="button" onClick={() => { setEditingUsername(null); setUserForm({ username: '', password: '', displayName: '', role: 'customer' }) }} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                  <button type="button" onClick={() => { setEditingUsername(null); setUserForm({ username: '', password: '', displayName: '', role: 'customer' }) }} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                     Cancel
                   </button>
                 ) : null}
@@ -1315,13 +1316,13 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       ) : null}
 
       {tab === 'break-modes' ? (
-        <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+        <section className="panel-accent panel-accent-rose rounded-[10px] p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold">Break Modes</h2>
               <p className="mt-2 text-slate-600">Changes apply to browser sessions and test runners on the local server.</p>
             </div>
-            <button type="button" onClick={() => void handleResetBreakModes()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+            <button type="button" onClick={() => void handleResetBreakModes()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
               Reset break modes
             </button>
           </div>
@@ -1335,7 +1336,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               ['bypassVipGuard', 'Bypass VIP guard', 'Website only: removes the VIP route restriction so testers can detect broken authorization rules.'],
               ['emptyProductList', 'Empty product list', 'API first, then website on refetch: returns no products so testers can verify empty states and data-absence handling.'],
             ] as const).map(([key, label, description]) => (
-              <label key={key} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <label key={key} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <span className="font-medium">{label}</span>
@@ -1355,7 +1356,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               ['products', 'API failure: products', 'Makes product endpoints fail so testers can verify product-list error handling and recovery.'],
               ['orders', 'API failure: orders', 'Makes order endpoints fail so testers can verify checkout and order-history failure behaviour.'],
             ] as const).map(([scope, label, description]) => (
-              <label key={scope} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <label key={scope} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <span className="font-medium">{label}</span>
@@ -1385,14 +1386,14 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
       {tab === 'scenarios' ? (
         <div className="grid gap-6">
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-violet rounded-[10px] p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold">Scenario Presets</h2>
                 <p className="mt-2 text-slate-600">Apply named test states and compare them against live modifications.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <span className="rounded-full bg-stone-100 px-3 py-2 text-sm text-slate-700">
+                <span className="rounded-[10px] bg-stone-100 px-3 py-2 text-sm text-slate-700">
                   Active preset: <strong>{testControls.activePresetId ?? 'none'}</strong>
                 </span>
                 <span className={`rounded-full px-3 py-2 text-sm ${presetModified ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
@@ -1402,21 +1403,21 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {presets.map((preset) => (
-                <article key={preset.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <article key={preset.id} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-semibold">{preset.label}</h3>
                       <p className="mt-2 text-sm text-slate-600">{preset.description}</p>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-                        <span className="rounded-full bg-white px-3 py-1">
+                        <span className="rounded-[10px] bg-white px-3 py-1">
                           {Object.values(preset.breakModes).flatMap((value) => (typeof value === 'object' ? Object.values(value) : [value])).filter(Boolean).length} break modes
                         </span>
-                        <span className="rounded-full bg-white px-3 py-1">
+                        <span className="rounded-[10px] bg-white px-3 py-1">
                           {Object.values(preset.faults).filter((fault) => fault.enabled).length} endpoint faults
                         </span>
                       </div>
                     </div>
-                    <button type="button" onClick={() => void handleApplyPreset(preset.id)} className="btn-primary rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                    <button type="button" onClick={() => void handleApplyPreset(preset.id)} className="btn-primary rounded-[10px] bg-slate-900 px-4 py-2 text-sm font-medium text-white">
                       Apply
                     </button>
                   </div>
@@ -1426,17 +1427,17 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-amber rounded-[10px] p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold">Fault Matrix</h2>
                 <p className="mt-2 text-slate-600">Configure endpoint-specific fault responses and latency overrides.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => void handleClearFaults()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={savingFaults}>
+                <button type="button" onClick={() => void handleClearFaults()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={savingFaults}>
                   Clear all faults
                 </button>
-                <button type="button" onClick={() => void handleRestorePreset()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={!testControls.activePresetId || savingFaults}>
+                <button type="button" onClick={() => void handleRestorePreset()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700" disabled={!testControls.activePresetId || savingFaults}>
                   Restore active preset
                 </button>
               </div>
@@ -1446,7 +1447,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               {endpointKeys.map((endpointKey) => {
                 const fault = testControls.faults[endpointKey]
                 return (
-                  <div key={endpointKey} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <div key={endpointKey} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                     <div className="grid gap-4 xl:grid-cols-[1.1fr_repeat(5,minmax(0,1fr))] xl:items-center">
                       <div>
                         <p className="font-semibold">{endpointLabels[endpointKey]}</p>
@@ -1463,7 +1464,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       </label>
                       <label className="text-sm">
                         <span className="mb-1 block text-slate-500">Status</span>
-                        <select className={inputClass(false)} value={String(fault.status)} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, status: Number(event.target.value) as EndpointFaultConfig['status'] })} disabled={savingFaults}>
+                        <select className={desktopInputClass(false)} value={String(fault.status)} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, status: Number(event.target.value) as EndpointFaultConfig['status'] })} disabled={savingFaults}>
                           {faultStatuses.map((status) => (
                             <option key={status} value={status}>
                               {status}
@@ -1473,7 +1474,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       </label>
                       <label className="text-sm">
                         <span className="mb-1 block text-slate-500">Mode</span>
-                        <select className={inputClass(false)} value={fault.mode} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, mode: event.target.value as FaultResponseMode })} disabled={savingFaults}>
+                        <select className={desktopInputClass(false)} value={fault.mode} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, mode: event.target.value as FaultResponseMode })} disabled={savingFaults}>
                           {faultModes.map((mode) => (
                             <option key={mode} value={mode}>
                               {mode}
@@ -1483,11 +1484,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       </label>
                       <label className="text-sm">
                         <span className="mb-1 block text-slate-500">Latency ms</span>
-                        <input className={inputClass(false)} value={fault.latencyMs ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, latencyMs: event.target.value ? Number(event.target.value) : null })} disabled={savingFaults} />
+                        <input className={desktopInputClass(false)} value={fault.latencyMs ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, latencyMs: event.target.value ? Number(event.target.value) : null })} disabled={savingFaults} />
                       </label>
                       <label className="text-sm">
                         <span className="mb-1 block text-slate-500">Message</span>
-                        <input className={inputClass(false)} value={fault.message ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, message: event.target.value || null })} disabled={savingFaults} />
+                        <input className={desktopInputClass(false)} value={fault.message ?? ''} onChange={(event) => void handleFaultChange(endpointKey, { ...fault, message: event.target.value || null })} disabled={savingFaults} />
                       </label>
                     </div>
                   </div>
@@ -1500,35 +1501,35 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
       {tab === 'tracing' ? (
         <div className="grid gap-6">
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-cyan rounded-[10px] p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold">Trace Viewer</h2>
                 <p className="mt-2 text-slate-600">Inspect recent request metadata, active fault mode, and correlation identifiers.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <label className="flex items-center gap-2 rounded-full bg-stone-100 px-4 py-2 text-sm text-slate-700">
+                <label className="flex items-center gap-2 rounded-[10px] bg-stone-100 px-4 py-2 text-sm text-slate-700">
                   <input type="checkbox" checked={testControls.tracing.enabled} onChange={(event) => void handleTracingUpdate({ enabled: event.target.checked })} disabled={savingTracing} />
                   Tracing enabled
                 </label>
-                <select className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm" value={String(testControls.tracing.maxEntries)} onChange={(event) => void handleTracingUpdate({ maxEntries: Number(event.target.value) })} disabled={savingTracing}>
+                <select className="rounded-[10px] border border-stone-300 bg-white px-4 py-2 text-sm" value={String(testControls.tracing.maxEntries)} onChange={(event) => void handleTracingUpdate({ maxEntries: Number(event.target.value) })} disabled={savingTracing}>
                   {[25, 50, 100, 250].map((size) => (
                     <option key={size} value={size}>
                       {size} entries
                     </option>
                   ))}
                 </select>
-                <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                <button type="button" onClick={() => void handleRefreshTraces()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                   Refresh
                 </button>
-                <button type="button" onClick={() => void handleClearTraces()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+                <button type="button" onClick={() => void handleClearTraces()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                   Clear
                 </button>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <select className={inputClass(false)} value={traceEndpointFilter} onChange={(event) => setTraceEndpointFilter(event.target.value)}>
+              <select className={desktopInputClass(false)} value={traceEndpointFilter} onChange={(event) => setTraceEndpointFilter(event.target.value)}>
                 <option value="all">All endpoints</option>
                 {endpointKeys.map((endpointKey) => (
                   <option key={endpointKey} value={endpointKey}>
@@ -1536,7 +1537,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                   </option>
                 ))}
               </select>
-              <select className={inputClass(false)} value={traceStatusFilter} onChange={(event) => setTraceStatusFilter(event.target.value)}>
+              <select className={desktopInputClass(false)} value={traceStatusFilter} onChange={(event) => setTraceStatusFilter(event.target.value)}>
                 <option value="all">All statuses</option>
                 {[200, 400, 401, 403, 404, 409, 422, 500, 503].map((status) => (
                   <option key={status} value={String(status)}>
@@ -1551,7 +1552,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 <p className="text-sm text-slate-600">No traces recorded yet.</p>
               ) : (
                 filteredTraces.map((trace) => (
-                  <details key={trace.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <details key={trace.id} className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
                     <summary className="cursor-pointer list-none">
                       <div className="grid gap-3 md:grid-cols-[1.1fr_1fr_0.7fr_0.9fr_0.8fr_1fr] md:items-center">
                         <span className="text-sm font-medium">{new Date(trace.timestamp).toLocaleTimeString()}</span>
@@ -1563,32 +1564,32 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       </div>
                     </summary>
                     <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                      <div className="rounded-[10px] border border-stone-200 bg-white p-4">
                         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Request</p>
                         <p className="mt-2 text-sm text-slate-700">Endpoint: {trace.endpointKey}</p>
                         <p className="mt-2 text-sm text-slate-700">Latency: {trace.latencyMs}ms</p>
-                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{JSON.stringify(trace.requestHeaders, null, 2)}</pre>
-                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.requestBody ?? 'No request body'}</pre>
+                        <pre className="mt-3 overflow-x-auto rounded-[10px] bg-stone-50 p-3 text-xs text-slate-700">{JSON.stringify(trace.requestHeaders, null, 2)}</pre>
+                        <pre className="mt-3 overflow-x-auto rounded-[10px] bg-stone-50 p-3 text-xs text-slate-700">{trace.requestBody ?? 'No request body'}</pre>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => void navigator.clipboard.writeText(trace.requestBody ?? '')}
-                            className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
+                            className="rounded-[10px] bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
                             disabled={!trace.requestBody}
                           >
                             Copy request body
                           </button>
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-stone-200 bg-white p-4">
+                      <div className="rounded-[10px] border border-stone-200 bg-white p-4">
                         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Response</p>
                         <p className="mt-2 text-sm text-slate-700">Preset: {trace.presetId ?? 'none'}</p>
-                        <pre className="mt-3 overflow-x-auto rounded-2xl bg-stone-50 p-3 text-xs text-slate-700">{trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied'}</pre>
+                        <pre className="mt-3 overflow-x-auto rounded-[10px] bg-stone-50 p-3 text-xs text-slate-700">{trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied'}</pre>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => void navigator.clipboard.writeText(trace.matchedFault ? JSON.stringify(trace.matchedFault, null, 2) : 'No fault applied')}
-                            className="rounded-full bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
+                            className="rounded-[10px] bg-stone-200 px-3 py-2 text-sm font-medium text-slate-700"
                           >
                             Copy response summary
                           </button>
@@ -1604,20 +1605,20 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       ) : null}
 
       {tab === 'postman' ? (
-        <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+        <section className="panel-accent panel-accent-emerald rounded-[10px] p-6">
           <h2 className="text-2xl font-semibold">Postman Assets</h2>
           <p className="mt-2 text-slate-600">Download generated collection and environment files based on the running local server.</p>
-          <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <div className="mt-6 rounded-[10px] border border-stone-200 bg-stone-50 p-4">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Bearer Token</p>
             <p className="mt-3 text-sm text-slate-600">Use this value as a Bearer token in Postman when you call any <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[0.95em] text-slate-800">/api/admin/*</code> route.</p>
-            <p className="mt-3 rounded-2xl border border-stone-200 bg-white p-3 font-mono text-sm text-slate-900">
+            <p className="mt-3 rounded-[10px] border border-stone-200 bg-white p-3 font-mono text-sm text-slate-900">
               {context?.adminApiToken ?? 'Unavailable'}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(context?.adminApiToken ?? '')}
-                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+                className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700"
                 disabled={!context?.adminApiToken}
               >
                 Copy token
@@ -1625,7 +1626,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(`Bearer ${context?.adminApiToken ?? ''}`)}
-                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+                className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700"
                 disabled={!context?.adminApiToken}
               >
                 Copy Bearer header value
@@ -1633,17 +1634,17 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             </div>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <button type="button" onClick={() => void handleDownloadCollection()} className="btn-primary rounded-[1.5rem] bg-slate-900 px-5 py-4 text-left font-medium text-white">
+            <button type="button" onClick={() => void handleDownloadCollection()} className="btn-primary rounded-[10px] bg-slate-900 px-5 py-4 text-left font-medium text-white">
               Download Collection
             </button>
-            <button type="button" onClick={() => void handleDownloadEnvironment()} className="rounded-[1.5rem] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
+            <button type="button" onClick={() => void handleDownloadEnvironment()} className="rounded-[10px] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
               Download Environment
             </button>
-            <button type="button" onClick={() => void navigator.clipboard.writeText(context?.serverUrl ?? '')} className="rounded-[1.5rem] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
+            <button type="button" onClick={() => void navigator.clipboard.writeText(context?.serverUrl ?? '')} className="rounded-[10px] bg-stone-200 px-5 py-4 text-left font-medium text-slate-700">
               Copy Base URL
             </button>
           </div>
-          <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <div className="mt-6 rounded-[10px] border border-stone-200 bg-stone-50 p-4">
             <p className="text-sm text-slate-600">Base URL</p>
             <p className="mt-2 font-mono text-sm text-slate-900">{context?.serverUrl ?? 'Unavailable'}</p>
           </div>
@@ -1651,7 +1652,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       ) : null}
 
       {tab === 'workshops' && selectedWorkshop && selectedWorkshopPart ? (
-        <div className={`${isSinglePaneLearning ? 'flex h-full min-h-0 flex-col' : 'grid h-full min-h-0 xl:grid-cols-[380px_minmax(0,1fr)]'} gap-4 sm:gap-6`}>
+        <div className={`${isSinglePaneLearning ? 'flex h-full min-h-0 flex-col' : 'grid h-full min-h-0 xl:grid-cols-[380px_minmax(0,1fr)]'} gap-6`}>
           {isSinglePaneLearning ? (
             <CompactLibraryDisclosure label="Library" currentTitle={selectedWorkshop.title}>
               <LearningShellPanel
@@ -1696,7 +1697,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             />
           </LearningShellPanel>
 
-          <section className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-sm ${isSinglePaneLearning ? 'p-3' : 'p-4 sm:p-6 lg:p-8'}`}>
+          <section className={`panel-accent panel-accent-amber flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] ${isSinglePaneLearning ? 'p-4' : 'p-4 sm:p-5 lg:p-6'}`}>
             <LearningContentHeader
               compact={isSinglePaneLearning}
               category={selectedWorkshop.category}
@@ -1716,7 +1717,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                         setTab(launchTarget.value as typeof tab)
                       }
                     }}
-                    className={`rounded-full bg-stone-200 ${isSinglePaneLearning ? 'px-2.5 py-1 text-xs' : 'px-3 py-1 text-sm'} font-medium text-slate-700`}
+                    className={`rounded-[10px] bg-stone-200 ${isSinglePaneLearning ? 'px-2.5 py-1 text-xs' : 'px-3 py-1 text-sm'} font-medium text-slate-700`}
                   >
                     {selectedWorkshop.launchTarget.label}
                   </button>
@@ -1724,11 +1725,11 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               }
             />
 
-            <div className={`shrink-0 rounded-[1.5rem] border border-stone-200 bg-white ${isSinglePaneLearning ? 'mt-3 p-3' : 'mt-4 p-4 sm:mt-6'}`}>
+            <div className={`shrink-0 rounded-[10px] border border-stone-200 bg-white ${isSinglePaneLearning ? 'mt-4 p-4' : 'mt-4 p-4 sm:mt-5 sm:p-5'}`}>
               <div className="flex min-w-0 items-center gap-2">
                 <label className="block min-w-0 flex-1 text-sm">
                   <select
-                    className={inputClass(false)}
+                    className={desktopInputClass(false)}
                     value={selectedWorkshopPart.slug}
                     onChange={(event) => {
                       const nextIndex = selectedWorkshop.parts.findIndex((part) => part.slug === event.target.value)
@@ -1750,7 +1751,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                 <button
                   type="button"
                   onClick={() => setSelectedWorkshopPartSlug(selectedWorkshop.parts[Math.max(selectedWorkshopPartIndex - 1, 0)]?.slug ?? selectedWorkshopPart.slug)}
-                  className="shrink-0 rounded-full border border-stone-300 bg-stone-100 px-2.5 py-2 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-stone-200 disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-slate-500 disabled:shadow-none"
+                  className="shrink-0 rounded-[10px] border border-stone-300 bg-stone-100 px-2.5 py-2 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-stone-200 disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-stone-200 disabled:text-slate-500 disabled:shadow-none"
                   disabled={selectedWorkshopPartIndex <= 0}
                 >
                   Previous
@@ -1762,7 +1763,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                       selectedWorkshop.parts[Math.min(selectedWorkshopPartIndex + 1, selectedWorkshop.parts.length - 1)]?.slug ?? selectedWorkshopPart.slug,
                     )
                   }
-                  className="shrink-0 rounded-full border border-slate-950 bg-slate-900 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
+                  className="shrink-0 rounded-[10px] border border-slate-950 bg-slate-900 px-2.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
                   disabled={
                     selectedWorkshopPartIndex >= selectedWorkshop.parts.length - 1 ||
                     selectedWorkshopPartIndex + 1 > effectiveUnlockedWorkshopPartIndex
@@ -1776,19 +1777,19 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             <div
               ref={workshopContentRef}
               onScroll={handleWorkshopContentScroll}
-              className="mt-4 min-h-0 flex-1 overflow-y-auto pr-2 sm:mt-6"
+              className="mt-4 min-h-0 flex-1 overflow-y-auto pr-2 sm:mt-5"
             >
               <MarkdownDocument markdown={selectedWorkshopPart.markdown} />
               {selectedWorkshopPart.quiz ? (() => {
                 const quiz = selectedWorkshopPart.quiz
 
                 return (
-                <section className="mt-8 rounded-[1.75rem] border border-stone-200 bg-stone-50 p-5">
+                <section className="mt-8 rounded-[10px] border border-stone-200 bg-stone-50 p-5">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Knowledge Check</p>
                   <h3 className="mt-3 text-xl font-semibold text-slate-900">{quiz.question}</h3>
                   <div className="mt-4 space-y-3">
                     {shuffledSelectedWorkshopQuizOptions.map((option) => (
-                      <label key={option.id} className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-slate-700">
+                      <label key={option.id} className="flex items-start gap-3 rounded-[10px] border border-stone-200 bg-white p-4 text-slate-700">
                         <input
                           type="radio"
                           name={selectedWorkshopQuizKey ?? quiz.id}
@@ -1815,7 +1816,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                     <button
                       type="button"
                       onClick={handleQuizSubmit}
-                      className="rounded-full border border-slate-950 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
+                      className="rounded-[10px] border border-slate-950 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500 disabled:text-slate-100 disabled:shadow-none"
                       disabled={isSelectedWorkshopQuizPassed}
                     >
                       {isSelectedWorkshopQuizPassed ? 'Quiz Passed' : 'Check Answer'}
@@ -1835,7 +1836,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       ) : null}
 
       {tab === 'articles' && selectedArticle ? (
-        <div className={`${isSinglePaneLearning ? 'flex h-full min-h-0 flex-col' : 'grid h-full min-h-0 xl:grid-cols-[380px_minmax(0,1fr)]'} gap-4 sm:gap-6`}>
+        <div className={`${isSinglePaneLearning ? 'flex h-full min-h-0 flex-col' : 'grid h-full min-h-0 xl:grid-cols-[380px_minmax(0,1fr)]'} gap-6`}>
           {isSinglePaneLearning ? (
             <CompactLibraryDisclosure label="Library" currentTitle={selectedArticle.title}>
               <LearningShellPanel
@@ -1880,7 +1881,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
             />
           </LearningShellPanel>
 
-          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-stone-300 bg-white p-4 shadow-sm sm:p-6 lg:p-8">
+          <section className={`panel-accent panel-accent-violet flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] ${isSinglePaneLearning ? 'p-4' : 'p-4 sm:p-5 lg:p-6'}`}>
             <LearningContentHeader
               compact={isSinglePaneLearning}
               category={selectedArticle.category}
@@ -1900,7 +1901,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
                         setTab(launchTarget.value as typeof tab)
                       }
                     }}
-                    className="rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-slate-700"
+                    className={`rounded-[10px] bg-stone-200 ${isSinglePaneLearning ? 'px-2.5 py-1 text-xs' : 'px-3 py-1 text-sm'} font-medium text-slate-700`}
                   >
                     {selectedArticle.launchTarget.label}
                   </button>
@@ -1908,7 +1909,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               }
             />
 
-            <div ref={articleContentRef} onScroll={handleArticleContentScroll} className="mt-4 min-h-0 flex-1 overflow-y-auto pr-2 sm:mt-6">
+            <div ref={articleContentRef} onScroll={handleArticleContentScroll} className="mt-4 min-h-0 flex-1 overflow-y-auto pr-2 sm:mt-5">
               <MarkdownDocument markdown={selectedArticle.markdown} hideFirstHeading />
             </div>
           </section>
@@ -1917,26 +1918,26 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
       {tab === 'data-folder' ? (
         <div className="grid gap-6">
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-cyan rounded-[10px] p-6">
             <h2 className="text-2xl font-semibold">Data Folder</h2>
             <p className="mt-2 text-slate-600">Runtime JSON files are stored outside the app bundle in a user-selected folder.</p>
-            <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 font-mono text-sm text-slate-700">
+            <div className="mt-4 rounded-[10px] border border-stone-200 bg-stone-50 p-4 font-mono text-sm text-slate-700">
               {context?.dataDirectory ?? 'No folder selected'}
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={() => void loadDesktopData()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              <button type="button" onClick={() => void loadDesktopData()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Refresh data
               </button>
-              <button type="button" onClick={() => void handleSelectDataDirectory()} className="btn-primary rounded-full bg-slate-900 px-4 py-2 font-medium text-white">
+              <button type="button" onClick={() => void handleSelectDataDirectory()} className="btn-primary rounded-[10px] bg-slate-900 px-4 py-2 font-medium text-white">
                 Choose folder
               </button>
-              <button type="button" onClick={() => void handleOpenDataDirectory()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              <button type="button" onClick={() => void handleOpenDataDirectory()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Open folder
               </button>
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+          <section className="panel-accent panel-accent-rose rounded-[10px] p-6">
             <h2 className="text-2xl font-semibold">Workshop Progress</h2>
             <p className="mt-2 text-slate-600">
               Workshop progress, article read-state, and quiz gate progress are stored locally in the desktop app.
@@ -1945,7 +1946,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
               <button
                 type="button"
                 onClick={handleResetWorkshopProgress}
-                className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700"
+                className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700"
               >
                 Clear workshop progress
               </button>
@@ -1955,29 +1956,29 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
       ) : null}
 
       {tab === 'server' ? (
-        <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-sm">
+        <section className="panel-accent panel-accent-sky rounded-[10px] p-6">
           <h2 className="text-2xl font-semibold">Server</h2>
           <dl className="mt-4 space-y-4">
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <div className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
               <dt className="text-sm text-slate-500">Active URL</dt>
               <dd className="mt-1 font-mono text-slate-900">{context?.serverUrl ?? 'Unavailable'}</dd>
             </div>
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <div className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
               <dt className="text-sm text-slate-500">Port</dt>
               <dd className="mt-1 font-mono text-slate-900">{context?.port ?? 'Unavailable'}</dd>
             </div>
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <div className="rounded-[10px] border border-stone-200 bg-stone-50 p-4">
               <dt className="text-sm text-slate-500">Fallback port used</dt>
               <dd className="mt-1 text-slate-900">{context?.usedFallbackPort ? 'Yes' : 'No'}</dd>
             </div>
           </dl>
           <div className="mt-4 flex flex-wrap gap-3">
             {context?.serverUrl ? (
-              <button type="button" onClick={() => void navigator.clipboard.writeText(context.serverUrl ?? '')} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+              <button type="button" onClick={() => void navigator.clipboard.writeText(context.serverUrl ?? '')} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
                 Copy URL
               </button>
             ) : null}
-            <button type="button" onClick={() => void loadDesktopData()} className="rounded-full bg-stone-200 px-4 py-2 font-medium text-slate-700">
+            <button type="button" onClick={() => void loadDesktopData()} className="rounded-[10px] bg-stone-200 px-4 py-2 font-medium text-slate-700">
               Refresh status
             </button>
           </div>
@@ -1990,7 +1991,7 @@ export function DesktopAdminPage({ theme, onToggleTheme }: { theme: ThemeMode; o
 
 export function AdminUnavailablePage() {
   return (
-    <section className="rounded-[2rem] border border-stone-300 bg-white p-8 shadow-sm">
+    <section className="panel-accent panel-accent-sky rounded-[10px] p-8">
       <h1 className="text-3xl font-semibold">Admin tools moved to the desktop app</h1>
       <p className="mt-3 max-w-2xl text-slate-600">
         The standalone Electron app hosts the desktop-only admin shell. Use the Desktop tab in the desktop app window to manage users, break modes, runtime data, and server settings.
